@@ -14,3 +14,4 @@ build/
 !.env.example
 report.json
 e2e-report.json
+reports/

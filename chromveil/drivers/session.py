@@ -146,7 +146,10 @@ def open_browser(profile: ChromiumProfile, driver: str | None = None) -> VeilSes
         return VeilSession(profile=profile, driver=drv, cdp_url=url, browser=browser, _playwright=pw)
 
     pw = sync_playwright().start()
-    launch_args = profile.chromium_argv(include_cdp=bool(profile.cdp_port))
+    launch_args = profile.chromium_argv(
+        include_cdp=bool(profile.cdp_port),
+        for_playwright=True,
+    )
     opts: dict[str, Any] = {
         "headless": profile.headless,
         "args": launch_args,

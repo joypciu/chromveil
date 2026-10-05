@@ -21,7 +21,6 @@ def apply_dev_defaults(profile: ChromiumProfile) -> ChromiumProfile:
     profile.stealth_tuning = True
     profile.pure_stealth = True
     profile.speed_tuning = True
-    profile.persist_persona = True
     if os.environ.get("CHROMVEIL_DEV", "1") != "0":
         profile.driver = profile.driver or "auto"
     return profile

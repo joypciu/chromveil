@@ -58,6 +58,13 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("fetch", help="Download ChromiumFish binary if missing").set_defaults(cmd="fetch")
 
+    bc = sub.add_parser("bench", help="Performance comparison vs Patchright")
+    bc.add_argument("subcmd", nargs="?", default="compare", choices=["compare"])
+    bc.add_argument("-n", "--runs", type=int, default=3)
+    bc.add_argument("--headed", action="store_true")
+    bc.add_argument("-o", "--out", default="reports", help="Output directory for JSON+Markdown report")
+    bc.set_defaults(cmd="bench")
+
     e2 = sub.add_parser("e2e", help="Stealth + speed end-to-end report (JSON)")
     e2.add_argument("--driver", default="auto")
     e2.add_argument("-o", "--out")
@@ -148,6 +155,16 @@ def main(argv: list[str] | None = None) -> int:
             payload["native_agent"] = native_available()
             payload["hint"] = wsl_mcp_hint()
         print(json.dumps(payload, indent=2))
+        return 0
+
+    if args.cmd == "bench":
+        from pathlib import Path
+
+        from .bench.compare import run_comparison, write_report
+
+        data = run_comparison(runs=args.runs, headless=not args.headed)
+        jp, mp = write_report(data, Path(args.out))
+        print(json.dumps({"report_json": str(jp), "report_md": str(mp), "winners": data["winners"]}, indent=2))
         return 0
 
     if args.cmd == "fetch":

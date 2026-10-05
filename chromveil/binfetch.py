@@ -19,4 +19,7 @@ def ensure_binary(download: bool = True) -> str | None:
 
         return binary_path(download=True)
     except Exception:
-        return resolve_executable(download=False)
+        pass
+    from .resolve import resolve_executable as _resolve
+
+    return _resolve(download=False)

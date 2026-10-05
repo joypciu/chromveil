@@ -9,7 +9,8 @@ from typing import Any
 
 from .stealth import (
     PLAYWRIGHT_IGNORE_DEFAULT_ARGS,
-    PURE_STEALTH_CHROMIUM_ARGS,
+    PURE_STEALTH_FULL_ARGS,
+    PURE_STEALTH_LEAN_ARGS,
     SPEED_CHROMIUM_ARGS,
     STEALTH_CHROMIUM_ARGS,
 )
@@ -112,7 +113,7 @@ class ChromiumProfile:
             self.user_data_dir = str(root)
         return self
 
-    def chromium_argv(self, *, include_cdp: bool = True) -> list[str]:
+    def chromium_argv(self, *, include_cdp: bool = True, for_playwright: bool = False) -> list[str]:
         self.materialize()
         argv: list[str] = []
         if self.lean_gpu_args:
@@ -122,7 +123,7 @@ class ChromiumProfile:
         argv.append(f"--window-size={w},{h}")
         if self.headless:
             argv.append("--headless=new")
-        if self.user_data_dir:
+        if self.user_data_dir and not for_playwright:
             argv.append(f"--user-data-dir={self.user_data_dir}")
         if include_cdp and self.cdp_port:
             argv.append(f"--remote-debugging-port={self.cdp_port}")
@@ -130,7 +131,11 @@ class ChromiumProfile:
         if self.stealth_tuning:
             argv.extend(STEALTH_CHROMIUM_ARGS)
         if self.pure_stealth:
-            argv.extend(PURE_STEALTH_CHROMIUM_ARGS)
+            mode = os.environ.get("CHROMVEIL_PURE_STEALTH_MODE", "lean").lower()
+            if mode == "full":
+                argv.extend(PURE_STEALTH_FULL_ARGS)
+            elif mode != "off":
+                argv.extend(PURE_STEALTH_LEAN_ARGS)
         if self.speed_tuning:
             argv.extend(SPEED_CHROMIUM_ARGS)
         argv.extend(self.extra_args)

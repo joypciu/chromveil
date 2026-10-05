@@ -15,17 +15,23 @@ STEALTH_CHROMIUM_ARGS: tuple[str, ...] = (
     "--disable-infobars",
 )
 
-# Extra hygiene for "pure" mode — fewer background services & first-run UI.
-PURE_STEALTH_CHROMIUM_ARGS: tuple[str, ...] = (
+# Lean pure stealth (default) — benchmark: ~same cold launch as Patchright, faster navigation.
+PURE_STEALTH_LEAN_ARGS: tuple[str, ...] = (
     "--no-first-run",
     "--no-default-browser-check",
     "--disable-default-apps",
+)
+
+# Full pure stealth — more isolation, slightly slower startup.
+PURE_STEALTH_FULL_ARGS: tuple[str, ...] = PURE_STEALTH_LEAN_ARGS + (
     "--disable-sync",
     "--disable-background-networking",
     "--disable-component-update",
     "--disable-features=TranslateUI",
     "--metrics-recording-only",
 )
+
+PURE_STEALTH_CHROMIUM_ARGS: tuple[str, ...] = PURE_STEALTH_LEAN_ARGS
 
 # Throughput: keep renderers hot during automation.
 SPEED_CHROMIUM_ARGS: tuple[str, ...] = (
