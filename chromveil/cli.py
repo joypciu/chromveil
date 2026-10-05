@@ -82,6 +82,24 @@ def main(argv: list[str] | None = None) -> int:
     vs.add_argument("--attempts", type=int, default=3)
     vs.add_argument("-f", "--profile")
 
+    co = sub.add_parser(
+        "collect",
+        help="Open URL, capture API traffic (noise filtered), return data matching --want",
+    )
+    co.add_argument("url")
+    co.add_argument(
+        "--want",
+        default=None,
+        help="Comma keywords: odds,events,markets — filters APIs and JSON fields",
+    )
+    co.add_argument("--url-pattern", default=None, help="Regex filter on API URLs")
+    co.add_argument("--settle-ms", type=int, default=6000, help="Extra wait after load for SPA APIs")
+    co.add_argument("--driver", default="auto")
+    co.add_argument("--headed", action="store_true")
+    co.add_argument("--attempts", type=int, default=2)
+    co.add_argument("-o", "--out", help="Write JSON report")
+    co.add_argument("-f", "--profile")
+
     cn = sub.add_parser(
         "canary",
         help="Sportsbook canary suite: betonline.ag + bet365 pregame (#/HO/) + live (#/IP/)",
@@ -250,6 +268,30 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(text)
         return 0 if report.get("ok") else 1
+
+    if args.cmd == "collect":
+        from .intelligence.collect import collect_from_url
+
+        prof = _profile_from_args()
+        if args.headed:
+            prof.headless = False
+        result = collect_from_url(
+            args.url,
+            prof,
+            driver=args.driver,
+            want=args.want,
+            url_pattern=args.url_pattern,
+            settle_ms=args.settle_ms,
+            max_attempts=args.attempts,
+        )
+        text = json.dumps(result.to_dict(), indent=2)
+        if args.out:
+            from pathlib import Path
+
+            Path(args.out).write_text(text, encoding="utf-8")
+        else:
+            print(text)
+        return 0 if result.ok else 1
 
     if args.cmd == "visit":
         from .intelligence.navigation import goto_resilient

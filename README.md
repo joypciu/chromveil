@@ -62,7 +62,10 @@ python -m pytest tests -q
 chromveil canary --headed                        # betonline + bet365 pregame/live
 chromveil bench site --canary --headed -o reports
 CHROMVEIL_CANARY_LIVE=1 pytest tests/test_diverse_sites.py -v
+chromveil collect "https://www.bet365.com/#/HO/" --headed --want odds,events -o apis.json
 ```
+
+See [docs/COLLECT.md](docs/COLLECT.md) for intelligent API capture and `--want` filtering.
 
 Local **5s health loop** (log only, no Cursor wake): `.\scripts\loop-health.ps1`
 
