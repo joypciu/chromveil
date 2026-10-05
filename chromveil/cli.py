@@ -60,7 +60,16 @@ def main(argv: list[str] | None = None) -> int:
 
     bc = sub.add_parser("bench", help="Performance comparison vs Patchright")
     bc.add_argument("subcmd", nargs="?", default="compare", choices=["compare", "site"])
-    bc.add_argument("--url", default="https://www.bet365.com/", help="Site URL (bench site)")
+    bc.add_argument(
+        "--url",
+        default=None,
+        help="Site URL (bench site); default bet365 pregame #/HO/",
+    )
+    bc.add_argument(
+        "--canary",
+        action="store_true",
+        help="Run all sportsbook canary URLs (betonline + bet365 pre/live)",
+    )
     bc.add_argument("-n", "--runs", type=int, default=3)
     bc.add_argument("--headed", action="store_true")
     bc.add_argument("-o", "--out", default="reports", help="Output directory for JSON+Markdown report")
@@ -72,6 +81,14 @@ def main(argv: list[str] | None = None) -> int:
     vs.add_argument("--headed", action="store_true")
     vs.add_argument("--attempts", type=int, default=3)
     vs.add_argument("-f", "--profile")
+
+    cn = sub.add_parser(
+        "canary",
+        help="Sportsbook canary suite: betonline.ag + bet365 pregame (#/HO/) + live (#/IP/)",
+    )
+    cn.add_argument("--driver", default="auto")
+    cn.add_argument("--headed", action="store_true")
+    cn.add_argument("-o", "--out", help="Write JSON report")
 
     e2 = sub.add_parser("e2e", help="Stealth + speed end-to-end report (JSON)")
     e2.add_argument("--driver", default="auto")
@@ -171,8 +188,25 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.subcmd == "site":
             from .bench.site_compare import run_site_comparison, write_site_report
+            from .e2e.canary_runner import run_canary_suite
+            from .e2e.canary_sites import default_canary_url
 
-            data = run_site_comparison(args.url, headless=not args.headed)
+            if args.canary:
+                prof = _profile_from_args()
+                if args.headed:
+                    prof.headless = False
+                data = run_canary_suite(prof, driver=args.driver)
+                text = json.dumps(data, indent=2)
+                if args.out:
+                    from pathlib import Path
+
+                    Path(args.out).write_text(text, encoding="utf-8")
+                else:
+                    print(text)
+                return 0 if data.get("ok") else 1
+
+            url = args.url or default_canary_url()
+            data = run_site_comparison(url, headless=not args.headed)
             jp, mp = write_site_report(data, Path(args.out))
             print(
                 json.dumps(
@@ -200,6 +234,22 @@ def main(argv: list[str] | None = None) -> int:
         exe = ensure_binary(download=True)
         print(json.dumps({"executable": exe, "ok": bool(exe)}, indent=2))
         return 0 if exe else 1
+
+    if args.cmd == "canary":
+        from .e2e.canary_runner import run_canary_suite
+
+        prof = _profile_from_args()
+        if args.headed:
+            prof.headless = False
+        report = run_canary_suite(prof, driver=args.driver)
+        text = json.dumps(report, indent=2)
+        if args.out:
+            from pathlib import Path
+
+            Path(args.out).write_text(text, encoding="utf-8")
+        else:
+            print(text)
+        return 0 if report.get("ok") else 1
 
     if args.cmd == "visit":
         from .intelligence.navigation import goto_resilient

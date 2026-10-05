@@ -8,6 +8,21 @@
 | Stealth E2E | `tests/e2e/test_stealth_e2e.py` | `navigator.webdriver`, no `cdc_*` globals, viewport |
 | Speed E2E | `tests/e2e/test_speed_e2e.py` | example.com navigation + DOM snapshot latency |
 | Live (optional) | `CHROMVEIL_E2E_LIVE=1 pytest tests/e2e/test_live_fingerprint.py` | Network smoke |
+| **Sportsbook canary** | `CHROMVEIL_CANARY_LIVE=1 pytest tests/test_diverse_sites.py` | BetOnline + bet365 pre/live |
+
+## Canary sportsbook URLs (default live regression)
+
+| Key | URL |
+|-----|-----|
+| `betonline_sportsbook` | https://www.betonline.ag/sportsbook |
+| `bet365_pregame` | https://www.bet365.com/#/HO/ |
+| `bet365_live` | https://www.bet365.com/#/IP/ |
+
+```powershell
+chromveil canary --headed
+chromveil bench site --canary --headed -o reports
+CHROMVEIL_CANARY_LIVE=1 pytest tests/test_diverse_sites.py -v
+```
 
 CLI aggregator:
 

@@ -1,0 +1,17 @@
+{
+  "description": "Canonical live URLs — source of truth is chromveil/e2e/canary_sites.py",
+  "sites": [
+    {
+      "key": "betonline_sportsbook",
+      "url": "https://www.betonline.ag/sportsbook"
+    },
+    {
+      "key": "bet365_pregame",
+      "url": "https://www.bet365.com/#/HO/"
+    },
+    {
+      "key": "bet365_live",
+      "url": "https://www.bet365.com/#/IP/"
+    }
+  ]
+}

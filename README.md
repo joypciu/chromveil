@@ -59,8 +59,9 @@ with BrowserRuntime(profile).open(driver="patchright") as session:
 ```powershell
 chromveil e2e --headed          # stealth probes + timing JSON
 python -m pytest tests -q
-chromveil bench site --url https://www.bet365.com/ --headed -o reports
-chromveil visit https://example.com --headed   # resilient navigation + identity rotation
+chromveil canary --headed                        # betonline + bet365 pregame/live
+chromveil bench site --canary --headed -o reports
+CHROMVEIL_CANARY_LIVE=1 pytest tests/test_diverse_sites.py -v
 ```
 
 Local **5s health loop** (log only, no Cursor wake): `.\scripts\loop-health.ps1`

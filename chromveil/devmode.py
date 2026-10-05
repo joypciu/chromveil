@@ -45,12 +45,21 @@ def dev_status(profile: ChromiumProfile | None = None) -> DevStatus:
             executable=exe,
             ready_for_production_stealth=True,
         )
+    if tier == "custom" and exe:
+        return DevStatus(
+            tier="system-chrome",
+            message=(
+                "Using installed Chrome with ChromVeil stealth launch + rotating ephemeral profiles. "
+                "Set CHROMVEIL_EXECUTABLE for patched/ChromiumFish builds for engine-level hardening."
+            ),
+            executable=exe,
+            ready_for_production_stealth=False,
+        )
     return DevStatus(
         tier="driver-fallback",
         message=(
-            "No custom binary yet — using Playwright/Patchright + ChromVeil launch tuning. "
-            "On Windows, installed Google Chrome is used automatically (CHROMVEIL_AUTO_SYSTEM_CHROME=0 to disable). "
-            "CHROMVEIL_EXECUTABLE for patched builds, or WSL/chromveil fetch."
+            "No Chromium binary resolved — bundled Playwright/Patchright + ChromVeil tuning only. "
+            "On Windows enable auto system Chrome (default) or set CHROMVEIL_EXECUTABLE / WSL build."
         ),
         executable=None,
         ready_for_production_stealth=False,
