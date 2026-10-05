@@ -61,13 +61,24 @@ def resolve_executable(download: bool = False) -> str | None:
             if found:
                 return found
 
-    if os.environ.get("CHROMVEIL_USE_SYSTEM_CHROME", "").lower() in ("1", "true", "yes"):
+    if _system_chrome_enabled():
         from .chrome_paths import find_system_chrome
 
         found = find_system_chrome()
         if found:
             return found
     return None
+
+
+def _system_chrome_enabled() -> bool:
+    explicit = os.environ.get("CHROMVEIL_USE_SYSTEM_CHROME", "").strip().lower()
+    if explicit in ("0", "false", "no", "off"):
+        return False
+    if explicit in ("1", "true", "yes", "on"):
+        return True
+    if sys.platform == "win32":
+        return os.environ.get("CHROMVEIL_AUTO_SYSTEM_CHROME", "1") != "0"
+    return False
 
 
 def browser_tier(executable: str | None) -> str:

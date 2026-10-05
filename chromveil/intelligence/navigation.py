@@ -43,12 +43,7 @@ def detect_block_signals(page) -> list[str]:
             signals.append("body_text")
     except Exception:
         pass
-    try:
-        body_len = page.evaluate("() => (document.body && document.body.innerText || '').length")
-        if body_len is not None and body_len < 40:
-            signals.append("thin_body")
-    except Exception:
-        pass
+    # Do not treat thin body alone as a block — SPAs (bet365, etc.) often render outside innerText.
     return signals
 
 

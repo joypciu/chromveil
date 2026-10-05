@@ -66,6 +66,13 @@ def main(argv: list[str] | None = None) -> int:
     bc.add_argument("-o", "--out", default="reports", help="Output directory for JSON+Markdown report")
     bc.set_defaults(cmd="bench")
 
+    vs = sub.add_parser("visit", help="Resilient navigation (rotate identity + retries on block hints)")
+    vs.add_argument("url")
+    vs.add_argument("--driver", default="auto")
+    vs.add_argument("--headed", action="store_true")
+    vs.add_argument("--attempts", type=int, default=3)
+    vs.add_argument("-f", "--profile")
+
     e2 = sub.add_parser("e2e", help="Stealth + speed end-to-end report (JSON)")
     e2.add_argument("--driver", default="auto")
     e2.add_argument("--headed", action="store_true", help="Headed browser (stricter UA stealth)")
@@ -193,6 +200,28 @@ def main(argv: list[str] | None = None) -> int:
         exe = ensure_binary(download=True)
         print(json.dumps({"executable": exe, "ok": bool(exe)}, indent=2))
         return 0 if exe else 1
+
+    if args.cmd == "visit":
+        from .intelligence.navigation import goto_resilient
+
+        prof = _profile_from_args()
+        result = goto_resilient(
+            args.url,
+            prof,
+            driver=args.driver,
+            max_attempts=args.attempts,
+        )
+        payload = {
+            "ok": result.ok,
+            "url": result.url,
+            "title": result.title,
+            "attempts": result.attempts,
+            "block_signals": result.block_signals,
+        }
+        print(json.dumps(payload, indent=2))
+        if result.session:
+            result.session.close()
+        return 0 if result.ok else 1
 
     if args.cmd == "e2e":
         from .e2e.runner import run_e2e

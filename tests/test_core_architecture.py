@@ -7,6 +7,7 @@ from chromveil.profile import ChromiumProfile
 
 def test_launch_plan_immutable_and_deduped(monkeypatch):
     monkeypatch.setenv("CHROMVEIL_FIXED_PERSONA", "1")
+    monkeypatch.setenv("CHROMVEIL_AUTO_SYSTEM_CHROME", "0")
     p = ChromiumProfile(
         persona_seed="t",
         lean_gpu_args=False,
@@ -26,7 +27,8 @@ def test_browser_runtime_exposes_plan():
     assert isinstance(plan.argv, tuple)
 
 
-def test_engine_tier_fallback_without_binary():
+def test_engine_tier_fallback_without_binary(monkeypatch):
+    monkeypatch.setenv("CHROMVEIL_AUTO_SYSTEM_CHROME", "0")
     p = ChromiumProfile(executable=None, persist_persona=False)
     eng = BrowserEngine.from_profile(p, download=False)
     assert eng.tier == EngineTier.FALLBACK

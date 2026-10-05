@@ -60,7 +60,10 @@ with BrowserRuntime(profile).open(driver="patchright") as session:
 chromveil e2e --headed          # stealth probes + timing JSON
 python -m pytest tests -q
 chromveil bench site --url https://www.bet365.com/ --headed -o reports
+chromveil visit https://example.com --headed   # resilient navigation + identity rotation
 ```
+
+Local **5s health loop** (log only, no Cursor wake): `.\scripts\loop-health.ps1`
 
 Until a patched binary is built, use **`CHROMVEIL_USE_SYSTEM_CHROME=1`** to drive installed Google Chrome with ChromVeil launch tuning. Roadmap: [docs/NEXT_PHASE.md](docs/NEXT_PHASE.md).
 
@@ -83,7 +86,8 @@ Until a patched binary is built, use **`CHROMVEIL_USE_SYSTEM_CHROME=1`** to driv
 | `CHROMVEIL_STEALTH` / `CHROMVEIL_PURE_STEALTH` | Set `0` to disable launch stealth bundles |
 | `CHROMVEIL_PURE_STEALTH_MODE` | `lean` (default), `full`, or `off` |
 | `CHROMVEIL_EXECUTABLE` | Path to custom or ChromiumFish `chrome` |
-| `CHROMVEIL_USE_SYSTEM_CHROME` | `1` to use installed Google Chrome when no patched binary |
+| `CHROMVEIL_USE_SYSTEM_CHROME` | `1` force on / `0` force off installed Google Chrome |
+| `CHROMVEIL_AUTO_SYSTEM_CHROME` | Windows default `1` — use system Chrome when no patched binary |
 | `CHROMVEIL_DRIVER` | Default `patchright` when installed; or `playwright`, `subprocess`, `cdp` |
 
 Long-running CDP attach:

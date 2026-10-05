@@ -49,7 +49,7 @@ def dev_status(profile: ChromiumProfile | None = None) -> DevStatus:
         tier="driver-fallback",
         message=(
             "No custom binary yet — using Playwright/Patchright + ChromVeil launch tuning. "
-            "Set CHROMVEIL_USE_SYSTEM_CHROME=1 to launch installed Google Chrome, "
+            "On Windows, installed Google Chrome is used automatically (CHROMVEIL_AUTO_SYSTEM_CHROME=0 to disable). "
             "CHROMVEIL_EXECUTABLE for patched builds, or WSL/chromveil fetch."
         ),
         executable=None,
