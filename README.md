@@ -17,7 +17,7 @@ ChromVeil separates concerns into four layers (see [docs/ARCHITECTURE.md](docs/A
 | **Drivers** | Playwright, Patchright, subprocess CDP |
 | **Intelligence** | MCP server, LLM tasks, native `agentRunTask` (when the fork is available) |
 
-Every browser open uses **stealth by default**: automation tells stripped, lean pure-stealth Chromium flags, and Playwright `ignore_default_args`. Unless you opt in to persistence, each session gets a **minimal ephemeral profile** — fresh `persona-seed` and empty user-data under `~/.chromveil/sessions/` (removed on `close()`).
+Every browser open uses **stealth by default**: automation tells stripped, lean pure-stealth Chromium flags, and Playwright `ignore_default_args`. Unless you opt in to persistence, each session gets a **rotating ephemeral identity** — new `persona-seed`, viewport, `lang`, and empty user-data under `~/.chromveil/sessions/` (removed on `close()`). Use `goto_resilient()` or `BrowserRuntime.open_and_visit()` to retry with a fresh identity when a site shows block signals.
 
 ---
 
@@ -75,7 +75,9 @@ Until a patched binary is built, use **`CHROMVEIL_USE_SYSTEM_CHROME=1`** to driv
 
 | Variable | Purpose |
 |----------|---------|
-| `CHROMVEIL_PERSONA` | Fixed persona seed (optional; ephemeral mode still uses a fresh profile dir unless persistent) |
+| `CHROMVEIL_PERSONA` | Pin persona seed (pair with `CHROMVEIL_ROTATE_SEED=0` to stop rotation) |
+| `CHROMVEIL_FIXED_PERSONA` | `1` to keep constructor/env persona seed across opens |
+| `CHROMVEIL_ROTATE_IDENTITY` | `0` to disable viewport/lang/seed rotation (default on) |
 | `CHROMVEIL_PERSIST_PROFILE` | `1` to reuse profile storage across runs |
 | `CHROMVEIL_HEADLESS` | `1` for headless (`new`); default is headed |
 | `CHROMVEIL_STEALTH` / `CHROMVEIL_PURE_STEALTH` | Set `0` to disable launch stealth bundles |

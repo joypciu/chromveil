@@ -23,7 +23,17 @@ def test_persistent_session_stable_dir():
     assert "profiles" in p.user_data_dir.replace("\\", "/")
 
 
-def test_explicit_persona_seed_preserved_in_ephemeral_mode():
+def test_explicit_persona_seed_preserved_when_fixed(monkeypatch):
+    monkeypatch.setenv("CHROMVEIL_FIXED_PERSONA", "1")
     p = ChromiumProfile(persona_seed="my-brand", persist_persona=False, lean_gpu_args=False)
     prepare_session_identity(p)
     assert p.persona_seed == "my-brand"
+
+
+def test_ephemeral_rotates_seed_each_materialize():
+    p = ChromiumProfile(persist_persona=False, lean_gpu_args=False)
+    prepare_session_identity(p)
+    first = p.persona_seed
+    p.user_data_dir = None
+    prepare_session_identity(p)
+    assert p.persona_seed != first

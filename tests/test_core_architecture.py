@@ -5,7 +5,8 @@ from chromveil.core.types import EngineTier
 from chromveil.profile import ChromiumProfile
 
 
-def test_launch_plan_immutable_and_deduped():
+def test_launch_plan_immutable_and_deduped(monkeypatch):
+    monkeypatch.setenv("CHROMVEIL_FIXED_PERSONA", "1")
     p = ChromiumProfile(
         persona_seed="t",
         lean_gpu_args=False,

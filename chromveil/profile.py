@@ -105,6 +105,28 @@ class ChromiumProfile:
         apply_dev_defaults(self)
         return resolve_executable(download=download)
 
+    def clone_fresh_session(self) -> ChromiumProfile:
+        """New ephemeral session (rotation + clean user-data) with same launch preferences."""
+        return ChromiumProfile(
+            persona_seed=None,
+            executable=self.executable,
+            headless=self.headless,
+            window_size=self.window_size,
+            proxy=self.proxy,
+            timezone=self.timezone,
+            user_data_dir=None,
+            cdp_host=self.cdp_host,
+            cdp_port=self.cdp_port,
+            lean_gpu_args=self.lean_gpu_args,
+            stealth_tuning=self.stealth_tuning,
+            pure_stealth=self.pure_stealth,
+            speed_tuning=self.speed_tuning,
+            persist_persona=False,
+            extra_args=list(self.extra_args),
+            env=dict(self.env),
+            driver=self.driver,
+        )
+
     def materialize(self) -> ChromiumProfile:
         """Stealth defaults + ephemeral or persistent session profile."""
         from .core.persona import prepare_session_identity

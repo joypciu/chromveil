@@ -13,6 +13,7 @@ STEALTH_CHROMIUM_ARGS: tuple[str, ...] = (
     "--disable-blink-features=AutomationControlled",
     "--exclude-switches=enable-automation",
     "--disable-infobars",
+    "--disable-features=AutomationControlled",
 )
 
 # Lean pure stealth (default) — benchmark: ~same cold launch as Patchright, faster navigation.

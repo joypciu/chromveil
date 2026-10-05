@@ -6,6 +6,7 @@ One profile (persona, binary, flags) drives Playwright, Patchright, raw CDP, or 
 
 from .browser import launch, open
 from .core import BrowserEngine, BrowserRuntime, LaunchPlan, build_launch_plan
+from .intelligence import goto_resilient
 from .drivers import VeilSession, open_browser, spawn_cdp
 from .profile import ChromiumProfile, LEAN_GPU_ARGS
 
@@ -19,6 +20,7 @@ __all__ = [
     "LEAN_GPU_ARGS",
     "VeilSession",
     "build_launch_plan",
+    "goto_resilient",
     "launch",
     "open",
     "open_browser",

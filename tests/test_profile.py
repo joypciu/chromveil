@@ -1,7 +1,8 @@
 from chromveil.profile import ChromiumProfile
 
 
-def test_chromium_argv_persona_and_cdp():
+def test_chromium_argv_persona_and_cdp(monkeypatch):
+    monkeypatch.setenv("CHROMVEIL_FIXED_PERSONA", "1")
     p = ChromiumProfile(persona_seed="x", cdp_port=9333)
     argv = p.chromium_argv()
     assert "--persona-seed=x" in argv

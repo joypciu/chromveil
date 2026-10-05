@@ -73,6 +73,15 @@ class PlaywrightFamilyAdapter:
 
         if plan.user_data_dir:
             context = pw.chromium.launch_persistent_context(plan.user_data_dir, **opts)
+            if profile.stealth_tuning:
+                context.add_init_script(
+                    """
+                    try {
+                      if (navigator.webdriver)
+                        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+                    } catch (e) {}
+                    """
+                )
             return VeilSession(
                 profile=profile,
                 driver=self.name,

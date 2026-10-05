@@ -54,6 +54,9 @@ def prepare_session_identity(profile: ChromiumProfile) -> None:
     Persistent mode: stable seed + ``~/.chromveil/profiles/<hash>``.
     """
     ensure_stealth_defaults(profile)
+    from .identity_rotate import apply_rotating_identity
+
+    apply_rotating_identity(profile)
 
     if profile.persist_persona:
         if profile.persona_seed is None:

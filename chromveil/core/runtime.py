@@ -52,3 +52,19 @@ class BrowserRuntime:
                 ),
             )
         return get_adapter(drv).open(self.profile, plan)
+
+    def open_and_visit(
+        self,
+        url: str,
+        *,
+        driver: str | None = None,
+        max_attempts: int = 3,
+    ):
+        from ..intelligence.navigation import goto_resilient
+
+        return goto_resilient(
+            url,
+            self.profile,
+            driver=driver,
+            max_attempts=max_attempts,
+        )
