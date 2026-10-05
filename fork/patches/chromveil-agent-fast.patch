@@ -1,0 +1,24 @@
+diff --git a/chrome/browser/ai_agent/agent_controller.cc b/chrome/browser/ai_agent/agent_controller.cc
+--- a/chrome/browser/ai_agent/agent_controller.cc
++++ b/chrome/browser/ai_agent/agent_controller.cc
+@@ -113,9 +113,9 @@ namespace ai_agent {
+ namespace {
+ 
+ // Max characters of serialized page text fed to the model per step.
+-constexpr size_t kMaxPageChars = 24 * 1024;
++constexpr size_t kMaxPageChars = 14 * 1024;  // ChromVeil: leaner prompts
+ // Mouse-glide time per click. Kept human-ish but snappy for responsiveness.
+-constexpr double kClickDurationSeconds = 0.18;
++constexpr double kClickDurationSeconds = 0.12;  // ChromVeil: snappier clicks
+ 
+ // A permissive enterprise policy checker. ActorTask stores the checker as a
+ class PermissivePolicyChecker : public actor::EnterprisePolicyChecker {
+@@ -247,7 +247,7 @@ actor::ScrollToolRequest::Direction ScrollDirectionFromString(
+ }
+ 
+ // How many recent action/result lines to feed back to the model each step.
+-constexpr size_t kMaxHistoryLines = 10;
++constexpr size_t kMaxHistoryLines = 8;
+ 
+ // Compact one-line description of the action the model chose (for history).
+ 

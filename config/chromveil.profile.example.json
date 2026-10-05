@@ -1,0 +1,11 @@
+{
+  "persona_seed": "joy-1",
+  "executable": null,
+  "headless": true,
+  "window_size": [1920, 1080],
+  "timezone": "auto",
+  "cdp_port": 9222,
+  "lean_gpu_args": true,
+  "driver": "auto",
+  "extra_args": []
+}

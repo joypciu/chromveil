@@ -1,0 +1,10 @@
+diff --git a/chrome/browser/ai_agent/page_serializer.cc b/chrome/browser/ai_agent/page_serializer.cc
+--- a/chrome/browser/ai_agent/page_serializer.cc
++++ b/chrome/browser/ai_agent/page_serializer.cc
+@@ -1899,7 +1899,7 @@ namespace {
+ 
+-constexpr size_t kMaxLabelChars = 100;
++constexpr size_t kMaxLabelChars = 72;  // ChromVeil: faster serialize + smaller LLM input
+ 
+ // Collapses whitespace and truncates a label for compact display.
+ std::string CleanLabel(const std::string& raw) {

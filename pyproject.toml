@@ -1,0 +1,41 @@
+[project]
+name = "chromveil"
+version = "0.2.0"
+description = "Stealth Chromium launcher + perceive-act agent (CDP / Playwright / ChromiumFish)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "playwright>=1.40",
+  "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+fish = ["chromiumfish>=0.1"]
+native = [
+  "chromiumfish>=0.1",
+  "mcp>=1.2,<2",
+  "websocket-client>=1.6",
+]
+drivers = ["patchright>=1.60"]
+all = ["chromveil[native,drivers]"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+chromveil = "chromveil.cli:main"
+chromveil-mcp = "chromveil.mcp_server:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["chromveil*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "e2e: browser end-to-end tests",
+]
+pythonpath = ["."]

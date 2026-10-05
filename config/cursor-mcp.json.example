@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "chromveil": {
+      "command": "wsl.exe",
+      "args": [
+        "-d",
+        "Ubuntu",
+        "bash",
+        "-lc",
+        "/mnt/e/chromveil/scripts/wsl/run-mcp.sh"
+      ],
+      "env": {
+        "CHROMVEIL_PERSONA": "joy-1",
+        "CHROMVEIL_HEADLESS": "1",
+        "OPENAI_API_BASE": "http://127.0.0.1:11434/v1",
+        "OPENAI_API_KEY": "ollama",
+        "OPENAI_API_MODEL": "llama3.2"
+      }
+    }
+  }
+}
