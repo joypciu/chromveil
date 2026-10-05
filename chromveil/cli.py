@@ -67,6 +67,7 @@ def main(argv: list[str] | None = None) -> int:
 
     e2 = sub.add_parser("e2e", help="Stealth + speed end-to-end report (JSON)")
     e2.add_argument("--driver", default="auto")
+    e2.add_argument("--headed", action="store_true", help="Headed browser (stricter UA stealth)")
     e2.add_argument("-o", "--out")
 
     args = ap.parse_args(argv)
@@ -178,6 +179,8 @@ def main(argv: list[str] | None = None) -> int:
         from .e2e.runner import run_e2e
 
         prof = _profile_from_args()
+        if args.headed:
+            prof.headless = False
         report = run_e2e(prof, driver=args.driver)
         text = json.dumps(report, indent=2)
         if args.out:

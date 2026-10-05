@@ -18,8 +18,15 @@ def ensure_binary(download: bool = True) -> str | None:
         from chromiumfish.fetch import binary_path
 
         return binary_path(download=True)
-    except Exception:
-        pass
+    except Exception as exc:
+        import sys
+
+        hint = (
+            "ChromiumFish binary download failed. On Windows the win-x64 release may be "
+            "missing (HTTP 404) — use WSL + `chromiumfish fetch`, or set CHROMVEIL_EXECUTABLE."
+        )
+        print(hint, file=sys.stderr)
+        print(f"Detail: {exc}", file=sys.stderr)
     from .resolve import resolve_executable as _resolve
 
     return _resolve(download=False)
