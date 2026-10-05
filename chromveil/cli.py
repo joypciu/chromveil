@@ -35,6 +35,12 @@ def main(argv: list[str] | None = None) -> int:
     op.add_argument("--driver", choices=["auto", "playwright", "patchright"], default="auto")
     op.add_argument("--url", default="about:blank")
     op.add_argument("--headed", action="store_true")
+    op.add_argument(
+        "--smart",
+        action="store_true",
+        help="After load: capture APIs/WebSockets and print display (auto for sportsbook URLs)",
+    )
+    op.add_argument("--ask", default=None, help="With --smart: natural language data question")
     op.add_argument("-f", "--profile")
 
     doc = sub.add_parser("doctor", help="Check browser binary and drivers")
@@ -180,10 +186,26 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "open":
+        from .intelligence.auto_capture import should_auto_capture
+        from .intelligence.smart_open import open_with_capture
+
         prof = _profile_from_args()
-        sess = open(prof, driver=args.driver)
-        page = sess.new_page()
-        page.goto(args.url, wait_until="domcontentloaded")
+        smart = getattr(args, "smart", False) or should_auto_capture(args.url)
+        if smart:
+            sess, page, display = open_with_capture(
+                prof,
+                args.url,
+                driver=args.driver,
+                smart=True,
+                ask=getattr(args, "ask", None),
+            )
+            if display:
+                print(display)
+                print()
+        else:
+            sess = open(prof, driver=args.driver)
+            page = sess.new_page()
+            page.goto(args.url, wait_until="domcontentloaded")
         print(json.dumps({"driver": sess.driver, "url": page.url, "cdp_url": sess.cdp_url}, indent=2))
         input("Press Enter to close browser...")
         sess.close()

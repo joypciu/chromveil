@@ -1,17 +1,17 @@
 # Continuation loops
 
-## Local 5s health loop (recommended)
+## Local 2s health loop (recommended)
 
-Does **not** wake Cursor every 5s (avoids notification spam). Logs pytest summary to `~/.chromveil/loop-health.log`:
+Does **not** wake Cursor (avoids notification spam). Logs pytest summary to `~/.chromveil/loop-health.log`:
 
 ```powershell
 cd E:\chromveil
-.\scripts\loop-health.ps1          # default 5s
-.\scripts\loop-health.ps1 -Seconds 30
+.\scripts\loop-health.ps1          # default 2s
+.\scripts\loop-health.ps1 -Seconds 5
 ```
 
 Stop with Ctrl+C in that terminal.
 
 ## Agent loop (Cursor)
 
-Use a sane interval, e.g. `/loop 30m continue ChromVeil goal per NEXT_PHASE.md`. A **5s** agent loop is possible but will flood notifications; prefer `loop-health.ps1` for fast local cadence.
+Prefer **30m+** for agent-driven continuation. A **1–2s** agent loop will flood notifications; use `loop-health.ps1` for 1–2s local cadence instead.
