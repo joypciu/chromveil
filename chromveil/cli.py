@@ -59,7 +59,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("fetch", help="Download ChromiumFish binary if missing").set_defaults(cmd="fetch")
 
     bc = sub.add_parser("bench", help="Performance comparison vs Patchright")
-    bc.add_argument("subcmd", nargs="?", default="compare", choices=["compare"])
+    bc.add_argument("subcmd", nargs="?", default="compare", choices=["compare", "site"])
+    bc.add_argument("--url", default="https://www.bet365.com/", help="Site URL (bench site)")
     bc.add_argument("-n", "--runs", type=int, default=3)
     bc.add_argument("--headed", action="store_true")
     bc.add_argument("-o", "--out", default="reports", help="Output directory for JSON+Markdown report")
@@ -160,6 +161,24 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "bench":
         from pathlib import Path
+
+        if args.subcmd == "site":
+            from .bench.site_compare import run_site_comparison, write_site_report
+
+            data = run_site_comparison(args.url, headless=not args.headed)
+            jp, mp = write_site_report(data, Path(args.out))
+            print(
+                json.dumps(
+                    {
+                        "report_json": str(jp),
+                        "report_md": str(mp),
+                        "summary": data["summary"],
+                        "notes": data["notes"],
+                    },
+                    indent=2,
+                )
+            )
+            return 0
 
         from .bench.compare import run_comparison, write_report
 

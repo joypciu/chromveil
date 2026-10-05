@@ -60,6 +60,13 @@ def resolve_executable(download: bool = False) -> str | None:
             found = _scan_cache(home / ".cache" / "chromiumfish")
             if found:
                 return found
+
+    if os.environ.get("CHROMVEIL_USE_SYSTEM_CHROME", "").lower() in ("1", "true", "yes"):
+        from .chrome_paths import find_system_chrome
+
+        found = find_system_chrome()
+        if found:
+            return found
     return None
 
 

@@ -75,9 +75,22 @@ def launch(
             veil=session,
         )
     except FileNotFoundError as exc:
-        warnings.warn(f"{exc}; falling back to stock Playwright chromium.", stacklevel=2)
+        warnings.warn(
+            f"{exc}; falling back to Playwright with ChromVeil stealth argv (not stock launch).",
+            stacklevel=2,
+        )
         from playwright.sync_api import sync_playwright
 
+        prof.stealth_tuning = True
+        prof.pure_stealth = True
         pw = sync_playwright().start()
-        browser = pw.chromium.launch(headless=headless, args=prof.chromium_argv(include_cdp=False))
+        launch_opts: dict[str, Any] = {
+            "headless": headless,
+            "args": prof.chromium_argv(include_cdp=False, for_playwright=True),
+            "ignore_default_args": prof.playwright_ignore_default_args(),
+        }
+        system = prof.resolve_executable(download=False)
+        if system:
+            launch_opts["executable_path"] = system
+        browser = pw.chromium.launch(**launch_opts)
         return BrowserSession(pw, browser, "playwright-fallback")

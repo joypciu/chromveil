@@ -59,7 +59,10 @@ with BrowserRuntime(profile).open(driver="patchright") as session:
 ```powershell
 chromveil e2e --headed          # stealth probes + timing JSON
 python -m pytest tests -q
+chromveil bench site --url https://www.bet365.com/ --headed -o reports
 ```
+
+Until a patched binary is built, use **`CHROMVEIL_USE_SYSTEM_CHROME=1`** to drive installed Google Chrome with ChromVeil launch tuning. Roadmap: [docs/NEXT_PHASE.md](docs/NEXT_PHASE.md).
 
 ---
 
@@ -78,7 +81,8 @@ python -m pytest tests -q
 | `CHROMVEIL_STEALTH` / `CHROMVEIL_PURE_STEALTH` | Set `0` to disable launch stealth bundles |
 | `CHROMVEIL_PURE_STEALTH_MODE` | `lean` (default), `full`, or `off` |
 | `CHROMVEIL_EXECUTABLE` | Path to custom or ChromiumFish `chrome` |
-| `CHROMVEIL_DRIVER` | `auto`, `patchright`, `playwright`, `subprocess`, `cdp` |
+| `CHROMVEIL_USE_SYSTEM_CHROME` | `1` to use installed Google Chrome when no patched binary |
+| `CHROMVEIL_DRIVER` | Default `patchright` when installed; or `playwright`, `subprocess`, `cdp` |
 
 Long-running CDP attach:
 

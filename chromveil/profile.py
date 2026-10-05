@@ -21,6 +21,16 @@ LEAN_GPU_ARGS: tuple[str, ...] = (
 DriverName = str  # playwright | patchright | cdp | subprocess | auto
 
 
+def default_driver_name() -> str:
+    """Patchright when installed (bet365-style sites); else playwright."""
+    try:
+        import patchright  # noqa: F401
+
+        return "patchright"
+    except ImportError:
+        return "playwright"
+
+
 @dataclass
 class ChromiumProfile:
     """
@@ -47,7 +57,7 @@ class ChromiumProfile:
     persist_persona: bool = False
     extra_args: list[str] = field(default_factory=list)
     env: dict[str, str] = field(default_factory=dict)
-    driver: DriverName = "auto"
+    driver: DriverName = "patchright"
 
     @classmethod
     def from_env(cls) -> ChromiumProfile:
@@ -74,7 +84,7 @@ class ChromiumProfile:
             pure_stealth=_bool("CHROMVEIL_PURE_STEALTH", True),
             speed_tuning=_bool("CHROMVEIL_SPEED", True),
             persist_persona=_bool("CHROMVEIL_PERSIST_PROFILE", False),
-            driver=os.environ.get("CHROMVEIL_DRIVER", "auto"),
+            driver=os.environ.get("CHROMVEIL_DRIVER") or default_driver_name(),
         )
 
     @classmethod
