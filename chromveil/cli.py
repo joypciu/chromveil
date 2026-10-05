@@ -181,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
         prof = _profile_from_args()
         if args.headed:
             prof.headless = False
+        elif os.environ.get("CHROMVEIL_E2E_HEADLESS", "1") != "0":
+            prof.headless = True
         report = run_e2e(prof, driver=args.driver)
         text = json.dumps(report, indent=2)
         if args.out:
@@ -207,7 +209,7 @@ def main(argv: list[str] | None = None) -> int:
             driver=args.driver,
         )
         try:
-            page = sess.browser.new_page()
+            page = sess.new_page()
             page.goto(args.url, wait_until="domcontentloaded")
             result = run_task(page, args.task, max_steps=args.max_steps, backend=sess.backend)
             print(

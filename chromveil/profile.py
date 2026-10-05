@@ -7,13 +7,6 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
-from .stealth import (
-    PLAYWRIGHT_IGNORE_DEFAULT_ARGS,
-    PURE_STEALTH_FULL_ARGS,
-    PURE_STEALTH_LEAN_ARGS,
-    SPEED_CHROMIUM_ARGS,
-    STEALTH_CHROMIUM_ARGS,
-)
 
 # GPU-less defaults aligned with ChromiumFish launcher (safe on Linux/WSL headless).
 LEAN_GPU_ARGS: tuple[str, ...] = (
@@ -38,9 +31,9 @@ class ChromiumProfile:
     - spawn via ``chromveil.up()`` / ``chrom_argv()`` and connect over CDP yourself.
     """
 
-    persona_seed: str = "chromveil-1"
+    persona_seed: str | None = None
     executable: str | None = None
-    headless: bool = True
+    headless: bool = False
     window_size: tuple[int, int] = (1920, 1080)
     proxy: dict[str, Any] | None = None
     timezone: str | None = None  # IANA zone, or "auto" (ChromiumFish ip2tz when available)
@@ -51,7 +44,7 @@ class ChromiumProfile:
     stealth_tuning: bool = True
     pure_stealth: bool = True
     speed_tuning: bool = True
-    persist_persona: bool = True
+    persist_persona: bool = False
     extra_args: list[str] = field(default_factory=list)
     env: dict[str, str] = field(default_factory=dict)
     driver: DriverName = "auto"
@@ -68,9 +61,9 @@ class ChromiumProfile:
         w = os.environ.get("CHROMVEIL_WINDOW_WIDTH", "1920")
         h = os.environ.get("CHROMVEIL_WINDOW_HEIGHT", "1080")
         return cls(
-            persona_seed=os.environ.get("CHROMVEIL_PERSONA", "chromveil-1"),
+            persona_seed=os.environ.get("CHROMVEIL_PERSONA"),
             executable=os.environ.get("CHROMVEIL_EXECUTABLE") or os.environ.get("CHROMVEIL_CHROME"),
-            headless=_bool("CHROMVEIL_HEADLESS", True),
+            headless=_bool("CHROMVEIL_HEADLESS", False),
             window_size=(int(w), int(h)),
             timezone=os.environ.get("CHROMVEIL_TIMEZONE"),
             user_data_dir=os.environ.get("CHROMVEIL_USER_DATA_DIR"),
@@ -80,7 +73,7 @@ class ChromiumProfile:
             stealth_tuning=_bool("CHROMVEIL_STEALTH", True),
             pure_stealth=_bool("CHROMVEIL_PURE_STEALTH", True),
             speed_tuning=_bool("CHROMVEIL_SPEED", True),
-            persist_persona=_bool("CHROMVEIL_PERSIST_PROFILE", True),
+            persist_persona=_bool("CHROMVEIL_PERSIST_PROFILE", False),
             driver=os.environ.get("CHROMVEIL_DRIVER", "auto"),
         )
 
@@ -103,48 +96,31 @@ class ChromiumProfile:
         return resolve_executable(download=download)
 
     def materialize(self) -> ChromiumProfile:
-        """Apply persona profile dir and defaults before launch."""
-        import hashlib
+        """Stealth defaults + ephemeral or persistent session profile."""
+        from .core.persona import prepare_session_identity
 
-        if self.persist_persona and not self.user_data_dir:
-            slug = hashlib.sha256(self.persona_seed.encode("utf-8")).hexdigest()[:16]
-            root = Path.home() / ".chromveil" / "profiles" / slug
-            root.mkdir(parents=True, exist_ok=True)
-            self.user_data_dir = str(root)
+        prepare_session_identity(self)
         return self
 
     def chromium_argv(self, *, include_cdp: bool = True, for_playwright: bool = False) -> list[str]:
-        self.materialize()
-        argv: list[str] = []
-        if self.lean_gpu_args:
-            argv.extend(LEAN_GPU_ARGS)
-        argv.append(f"--persona-seed={self.persona_seed}")
-        w, h = self.window_size
-        argv.append(f"--window-size={w},{h}")
-        if self.headless:
-            argv.append("--headless=new")
-        if self.user_data_dir and not for_playwright:
-            argv.append(f"--user-data-dir={self.user_data_dir}")
-        if include_cdp and self.cdp_port:
-            argv.append(f"--remote-debugging-port={self.cdp_port}")
-            argv.append("--remote-debugging-address=0.0.0.0")
-        if self.stealth_tuning:
-            argv.extend(STEALTH_CHROMIUM_ARGS)
-        if self.pure_stealth:
-            mode = os.environ.get("CHROMVEIL_PURE_STEALTH_MODE", "lean").lower()
-            if mode == "full":
-                argv.extend(PURE_STEALTH_FULL_ARGS)
-            elif mode != "off":
-                argv.extend(PURE_STEALTH_LEAN_ARGS)
-        if self.speed_tuning:
-            argv.extend(SPEED_CHROMIUM_ARGS)
-        argv.extend(self.extra_args)
-        return _dedupe_args(argv)
+        from .core.builder import LaunchContext, build_launch_plan
+
+        plan = build_launch_plan(
+            self,
+            LaunchContext(include_cdp=include_cdp, for_playwright=for_playwright),
+        )
+        return plan.argv_list()
 
     def playwright_ignore_default_args(self) -> list[str]:
-        if not self.stealth_tuning:
-            return []
-        return list(PLAYWRIGHT_IGNORE_DEFAULT_ARGS)
+        from .core.builder import LaunchContext, build_launch_plan
+
+        plan = build_launch_plan(self, LaunchContext(for_playwright=True))
+        return list(plan.ignore_default_args)
+
+    def launch_plan(self, **ctx_kwargs):
+        from .core.builder import LaunchContext, build_launch_plan
+
+        return build_launch_plan(self, LaunchContext(**ctx_kwargs))
 
     def merged_env(self) -> dict[str, str]:
         env = dict(os.environ)
@@ -159,15 +135,18 @@ class ChromiumProfile:
         return f"http://{self.cdp_host}:{self.cdp_port}"
 
     def to_spec(self) -> dict[str, Any]:
-        exe = self.resolve_executable(download=False)
+        from .core.builder import LaunchContext, build_launch_plan
+
+        plan = build_launch_plan(self, LaunchContext(resolve_binary=False))
         return {
             "kind": "chromveil/browser-spec",
-            "version": 1,
+            "version": 2,
             "persona_seed": self.persona_seed,
-            "executable": exe,
-            "argv": self.chromium_argv(),
-            "env": {k: self.merged_env()[k] for k in ("TZ",) if "TZ" in self.merged_env()},
-            "cdp_url": self.cdp_url(),
+            "engine_tier": plan.engine_tier,
+            "executable": plan.executable,
+            "argv": plan.argv_list(),
+            "env": {k: plan.env[k] for k in ("TZ",) if k in plan.env},
+            "cdp_url": plan.cdp_url,
             "driver_hint": self.driver,
             "connect": {
                 "playwright": "playwright.chromium.connect_over_cdp(cdp_url)",

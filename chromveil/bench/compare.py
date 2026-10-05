@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 from ..binfetch import ensure_binary
-from ..drivers.session import VeilSession, _playwright_module, open_browser
+from ..drivers.registry import _playwright_module
+from ..drivers.session import VeilSession, open_browser
 from ..e2e.probes import run_probes_on_page
 from ..e2e.speed import SNAPSHOT_JS, SpeedReport
 from ..profile import ChromiumProfile, is_patched_build

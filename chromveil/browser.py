@@ -17,6 +17,13 @@ class BrowserSession:
     veil: Any = None
     _chromiumfish: Any = None
 
+    def new_page(self) -> Any:
+        if self.veil is not None:
+            return self.veil.new_page()
+        if self.browser is not None:
+            return self.browser.new_page()
+        raise RuntimeError("BrowserSession has no active browser")
+
     def close(self) -> None:
         if self.veil is not None:
             self.veil.close()
@@ -39,7 +46,7 @@ def open(profile: ChromiumProfile | None = None, *, driver: str | None = None):
 def launch(
     *,
     persona_seed: str | None = None,
-    headless: bool = True,
+    headless: bool = False,
     executable_path: str | None = None,
     cdp_port: int | None = None,
     extra_args: list[str] | None = None,

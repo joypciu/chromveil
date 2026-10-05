@@ -1,7 +1,10 @@
 {
-  "persona_seed": "joy-1",
+  "persona_seed": null,
   "executable": null,
-  "headless": true,
+  "headless": false,
+  "persist_persona": false,
+  "stealth_tuning": true,
+  "pure_stealth": true,
   "window_size": [1920, 1080],
   "timezone": "auto",
   "cdp_port": 9222,

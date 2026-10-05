@@ -12,13 +12,16 @@
 CLI aggregator:
 
 ```bash
-chromveil e2e -o report.json
+chromveil e2e -o report.json          # headless by default (CI-friendly)
+chromveil e2e --headed                # full stealth score (UA checks)
+CHROMVEIL_E2E_HEADLESS=0 chromveil e2e  # force headed from CLI default
 ```
 
 ## Tunables
 
 | Env | Default | Meaning |
 |-----|---------|---------|
+| `CHROMVEIL_E2E_HEADLESS` | `1` | `chromveil e2e` uses headless unless `0` or `--headed` |
 | `CHROMVEIL_STEALTH` | `1` | Stealth Chromium + Playwright ignore args |
 | `CHROMVEIL_SPEED` | `1` | Disable background throttling flags |
 | `CHROMVEIL_E2E_NAV_MS` | `8000` | Max navigation time |

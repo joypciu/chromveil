@@ -1,101 +1,131 @@
 # ChromVeil
 
-**Repository:** https://github.com/joypciu/chromveil
+Driver-agnostic automation harness for a **custom Chromium** stack: hardened browser binary, launch-time stealth tuning, and optional native in-browser agent tooling.
 
-**Your own Chromium** — fully customizable (persona, binary, flags) and **driver-agnostic**:
-Playwright, Patchright, Puppeteer, Selenium, or raw CDP all attach to the same browser.
+**Repository:** [github.com/joypciu/chromveil](https://github.com/joypciu/chromveil)
 
-Plus: ChromiumFish stealth patches, native in-browser agent, and fast MCP.
+---
 
-Stack:
+## Overview
 
-| Layer | Project | Role |
-|-------|---------|------|
-| Engine | [ChromiumFish](https://github.com/arman-bd/chromiumfish) (`e:\chromiumfish`) | C++ fingerprint hardening + `Browser.agentRunTask` native agent |
-| Fork tuning | `fork/patches/chromveil-agent-fast.patch` | Leaner prompts, snappier clicks (your patch layer) |
-| Harness | ChromVeil | WSL bootstrap, MCP tools, `navigate(domcontentloaded)`, `snapshot_fast` |
+ChromVeil separates concerns into four layers (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)):
 
-**Custom fork not built yet?** Use [dev mode](docs/DEV_WITHOUT_CUSTOM_CHROME.md): Playwright/Patchright + launch tuning, or `scripts/fetch-chromiumfish.ps1` for the Windows prebuild. WSL build remains the path to *your* patched chrome + fork patches.
+| Layer | Responsibility |
+|--------|----------------|
+| **Engine** | Patched `chrome` (ChromiumFish or your build) |
+| **Launch plan** | Persona, argv, env, stealth flags — one immutable contract per session |
+| **Drivers** | Playwright, Patchright, subprocess CDP |
+| **Intelligence** | MCP server, LLM tasks, native `agentRunTask` (when the fork is available) |
 
-### E2E stealth + speed tests
+Every browser open uses **stealth by default**: automation tells stripped, lean pure-stealth Chromium flags, and Playwright `ignore_default_args`. Unless you opt in to persistence, each session gets a **minimal ephemeral profile** — fresh `persona-seed` and empty user-data under `~/.chromveil/sessions/` (removed on `close()`).
+
+---
+
+## Quick start
+
+### Install (Python)
 
 ```powershell
-chromveil e2e                    # JSON report: probes + benchmarks
-.\.venv\Scripts\python -m pytest tests -q
-$env:CHROMVEIL_E2E_LIVE="1"      # optional live https tests
+cd E:\chromveil
+python -m venv .venv
+.\.venv\Scripts\pip install -e ".[dev]"
+chromveil doctor
 ```
 
-With patched Chromium in WSL: `CHROMVEIL_EXECUTABLE=... CHROMVEIL_EXPECT_PATCHED=1 chromveil e2e`
+### Open a browser (stealth + ephemeral session)
 
-### Universal driver (Playwright / Patchright / anything)
+```powershell
+# Headed is the default (best User-Agent / fingerprint scores)
+chromveil open --driver patchright
+
+# Headless CI / servers
+$env:CHROMVEIL_HEADLESS="1"
+chromveil open --driver patchright
+```
+
+### Python API
+
+```python
+from chromveil import ChromiumProfile, BrowserRuntime
+
+profile = ChromiumProfile.from_env()  # stealth on, ephemeral session
+with BrowserRuntime(profile).open(driver="patchright") as session:
+    page = session.new_page()
+    page.goto("https://example.com")
+```
+
+### Health check
+
+```powershell
+chromveil e2e --headed          # stealth probes + timing JSON
+python -m pytest tests -q
+```
+
+---
+
+## Session identity
+
+| Mode | Default | Behavior |
+|------|---------|----------|
+| **Ephemeral** | Yes (`persist_persona=false`) | New persona seed + temp profile dir per open; cleaned on close |
+| **Persistent** | `CHROMVEIL_PERSIST_PROFILE=1` | Stable seed + `~/.chromveil/profiles/<hash>` |
+
+| Variable | Purpose |
+|----------|---------|
+| `CHROMVEIL_PERSONA` | Fixed persona seed (optional; ephemeral mode still uses a fresh profile dir unless persistent) |
+| `CHROMVEIL_PERSIST_PROFILE` | `1` to reuse profile storage across runs |
+| `CHROMVEIL_HEADLESS` | `1` for headless (`new`); default is headed |
+| `CHROMVEIL_STEALTH` / `CHROMVEIL_PURE_STEALTH` | Set `0` to disable launch stealth bundles |
+| `CHROMVEIL_PURE_STEALTH_MODE` | `lean` (default), `full`, or `off` |
+| `CHROMVEIL_EXECUTABLE` | Path to custom or ChromiumFish `chrome` |
+| `CHROMVEIL_DRIVER` | `auto`, `patchright`, `playwright`, `subprocess`, `cdp` |
+
+Long-running CDP attach:
 
 ```powershell
 chromveil up --port 9222
 chromveil spec -f config\chromveil.profile.example.json
-chromveil open --driver patchright --headed
 ```
-
-Profile JSON + `chromveil/browser-spec` = one identity for every library. See [docs/UNIVERSAL_DRIVER.md](docs/UNIVERSAL_DRIVER.md).
 
 ---
 
-## 1. Install WSL + bootstrap (Windows, Admin PowerShell)
+## Custom Chromium engine
+
+Production-grade fingerprint hardening lives in the **binary** (e.g. [ChromiumFish](https://github.com/arman-bd/chromiumfish)) plus optional patches under `fork/patches/`.
+
+**Windows without a local build:** see [docs/DEV_WITHOUT_CUSTOM_CHROME.md](docs/DEV_WITHOUT_CUSTOM_CHROME.md) — Patchright + ChromVeil launch tuning until `CHROMVEIL_EXECUTABLE` is set.
+
+**WSL build (recommended for patched chrome):**
 
 ```powershell
-cd E:\chromveil
 .\scripts\Install-WslChromiumfish.ps1
 ```
-
-Or manually: `wsl --install -d Ubuntu`, reboot, then in Ubuntu:
 
 ```bash
 /mnt/e/chromveil/scripts/wsl/setup.sh
 source ~/.chromveil/env
 chromveil doctor --native
-```
-
-## 2. Cursor MCP
-
-Copy `config/cursor-mcp.json.example` into Cursor MCP settings. It runs MCP **inside WSL** so the Linux ChromiumFish binary and native agent are available.
-
-Tools exposed:
-
-- `navigate` — `domcontentloaded` by default (faster than full load)
-- `snapshot_fast` / `snapshot` — perceive page (48 vs 120 elements)
-- `click` / `type_text` — **humanized** trusted input (fork CDP)
-- `run_task` — **native C++ agent** (batched actions, fastest for multi-step flows)
-- `browser_status` — persona + chrome path
-
-## 3. Custom patches (stealth + speed)
-
-After upstream `apply.sh`:
-
-```bash
 bash /mnt/e/chromveil/fork/apply-chromveil.sh
-# rebuild chrome — see scripts/wsl/build-chromiumfish.sh
 ```
 
-Add more patches under `fork/patches/`. See `fork/README.md`.
+---
 
-## 4. Full Chromium compile (optional, hours)
+## Cursor MCP
 
-```bash
-/mnt/e/chromveil/scripts/wsl/build-chromiumfish.sh
-export CHROMVEIL_CHROME=/mnt/e/chromiumfish/src/out/Release/chrome
-```
+Copy `config/cursor-mcp.json.example` into Cursor MCP settings (WSL entry recommended when the Linux binary is available).
 
-## Environment
+Typical tools: `navigate`, `snapshot_fast`, `click`, `type_text`, `run_task`, `browser_status`.
 
-| Variable | Purpose |
-|----------|---------|
-| `CHROMVEIL_PERSONA` | ChromiumFish persona seed |
-| `CHROMVEIL_CHROME` | Patched `chrome` binary |
-| `CHROMVEIL_NATIVE` | `0` to disable native agent |
-| `OPENAI_API_*` | LLM for `run_task` (Ollama, OpenRouter, …) |
+---
 
-## Resume line
+## Documentation
 
-> ChromVeil — WSL toolchain and MCP server on ChromiumFish: engine-level stealth Chromium, native in-process agent (`agentRunTask`), custom latency patches, fast CDP perception tools for Cursor.
+- [Architecture](docs/ARCHITECTURE.md)
+- [Universal driver / browser spec](docs/UNIVERSAL_DRIVER.md)
+- [E2E stealth tests](docs/E2E.md)
+- [Pure stealth modes](docs/PURE_STEALTH.md)
+
+---
 
 ## License
 

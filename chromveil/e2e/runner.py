@@ -14,7 +14,7 @@ from .speed import bench_session
 def run_e2e(profile: ChromiumProfile | None = None, driver: str | None = None) -> dict[str, Any]:
     prof = profile or ChromiumProfile.from_env()
     if profile is None:
-        prof.headless = os.environ.get("CHROMVEIL_HEADLESS", "1") != "0"
+        prof.headless = os.environ.get("CHROMVEIL_HEADLESS", "0") != "0"
     exe = prof.resolve_executable(download=False)
     patched = is_patched_build(exe)
 
