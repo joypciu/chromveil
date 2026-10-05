@@ -22,6 +22,13 @@ NOISE_PATH_RE = re.compile(
 
 API_RESOURCE_TYPES = frozenset({"xhr", "fetch"})
 JSON_CONTENT_RE = re.compile(r"application/(json|graphql)|text/json", re.I)
+# bet365 and similar SPAs often tag data calls as resource_type "other".
+APP_DATA_PATH_RE = re.compile(
+    r"(pullpodapi|defaultapi|manifestapi|offersapi|leftnav|footerapi|"
+    r"routingdata|sports-configuration|moswrapper|betswebapi|contentapi|"
+    r"homepagepods|matchmarkets|specialevent|/api/|blob\?)",
+    re.I,
+)
 
 
 def is_noise_url(url: str) -> bool:
@@ -53,7 +60,34 @@ def is_api_candidate(
         return True
     if "/api/" in url.lower() or "graphql" in url.lower():
         return True
+    if rt == "other" and APP_DATA_PATH_RE.search(url):
+        return True
     return False
+
+
+def is_obfuscated_chunk_url(url: str, resource_type: str) -> bool:
+    """bet365-style opaque single-path fetch chunks (not app data)."""
+    try:
+        p = urlparse(url)
+        path = (p.path or "").strip("/")
+    except Exception:
+        return False
+    if resource_type not in ("fetch", "xhr", "other"):
+        return False
+    if "api" in path.lower() or "pullpod" in url.lower() or "blob" in path.lower():
+        return False
+    if "/" in path:
+        return False
+    return len(path) >= 20
+
+
+def should_read_response_body(url: str, resource_type: str, content_type: str | None) -> bool:
+    """Skip reading huge opaque asset responses that are not user data."""
+    if not is_api_candidate(url, resource_type, content_type):
+        return False
+    if is_obfuscated_chunk_url(url, resource_type):
+        return False
+    return True
 
 
 def score_api_relevance(url: str, body: Any) -> float:

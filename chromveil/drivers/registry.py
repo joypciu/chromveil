@@ -7,10 +7,34 @@ import time
 import urllib.request
 from typing import Any, Callable, Protocol
 
+from pathlib import Path
+
 from ..core.launch_plan import LaunchPlan
 from ..core.types import DriverKind
 from ..profile import ChromiumProfile
 from .veil_session import VeilSession
+
+_STEALTH_INIT_JS = (Path(__file__).resolve().parent.parent / "stealth_init.js").read_text(
+    encoding="utf-8"
+)
+
+
+def _locale_from_profile(profile: ChromiumProfile) -> str:
+    for arg in profile.extra_args:
+        if arg.startswith("--lang="):
+            return arg.split("=", 1)[1]
+    return "en-US"
+
+
+def _playwright_context_opts(profile: ChromiumProfile) -> dict[str, Any]:
+    w, h = profile.window_size
+    opts: dict[str, Any] = {
+        "locale": _locale_from_profile(profile),
+        "viewport": {"width": w, "height": h},
+    }
+    if profile.timezone and profile.timezone != "auto":
+        opts["timezone_id"] = profile.timezone
+    return opts
 
 
 class DriverAdapter(Protocol):
@@ -72,16 +96,13 @@ class PlaywrightFamilyAdapter:
             ephemeral_dir = plan.user_data_dir
 
         if plan.user_data_dir:
-            context = pw.chromium.launch_persistent_context(plan.user_data_dir, **opts)
+            context = pw.chromium.launch_persistent_context(
+                plan.user_data_dir,
+                **_playwright_context_opts(profile),
+                **opts,
+            )
             if profile.stealth_tuning:
-                context.add_init_script(
-                    """
-                    try {
-                      if (navigator.webdriver)
-                        Object.defineProperty(navigator, 'webdriver', { get: () => false });
-                    } catch (e) {}
-                    """
-                )
+                context.add_init_script(_STEALTH_INIT_JS)
             return VeilSession(
                 profile=profile,
                 driver=self.name,

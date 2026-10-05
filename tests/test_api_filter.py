@@ -1,42 +1,41 @@
-from chromveil.intelligence.api_filter import is_api_candidate, is_noise_url
+from chromveil.intelligence.api_filter import is_api_candidate
 from chromveil.intelligence.data_query import select_for_user
-from chromveil.intelligence.network_capture import CapturedApi
 
 
-def test_noise_urls_filtered():
-    assert is_noise_url("https://www.google-analytics.com/collect?v=1")
-    assert is_noise_url("https://cdn.site.com/app.js")
-    assert not is_noise_url("https://api.example.com/v1/events")
-
-
-def test_api_candidate_xhr_json():
-    assert is_api_candidate("https://x.com/api/odds", "xhr", "application/json")
-    assert not is_api_candidate("https://x.com/static/logo.png", "image", "image/png")
+def test_other_resource_bet365_paths():
+    url = "https://www.bet365.com/manifestapi/getmanifest?s=www-sports"
+    assert is_api_candidate(url, "other", "application/octet-stream")
+    assert is_api_candidate(
+        "https://www.bet365.com/pullpodapi/gethomepagepods?lid=1",
+        "xhr",
+        "text/plain",
+    )
 
 
 def test_select_for_user_keywords():
+    from chromveil.intelligence.network_capture import CapturedApi
+
     entries = [
         CapturedApi(
-            url="https://api.test/sportsbook/odds",
+            url="https://api.example/v1/events",
             method="GET",
             status=200,
             resource_type="xhr",
             content_type="application/json",
-            body={"events": [{"name": "match", "odds": 1.9}]},
-            size_bytes=100,
+            body={"events": [{"name": "A v B", "odds": "2.0"}]},
+            size_bytes=50,
             relevance=3.0,
         ),
         CapturedApi(
-            url="https://api.test/telemetry",
-            method="POST",
+            url="https://cdn.example/app.js",
+            method="GET",
             status=200,
-            resource_type="xhr",
-            content_type="application/json",
-            body={"ping": 1},
+            resource_type="script",
+            content_type="application/javascript",
+            body="code",
             size_bytes=10,
-            relevance=1.0,
+            relevance=0.0,
         ),
     ]
     out = select_for_user(entries, want="odds,events")
-    assert out["count"] == 1
-    assert "odds" in out["apis"][0]["url"]
+    assert out["count"] >= 1

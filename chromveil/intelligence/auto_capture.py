@@ -12,6 +12,10 @@ _SMART_HOST_HINTS = (
     "bovada",
     "draftkings",
     "fanduel",
+    "wagertalk",
+    "vsin.com",
+    "prophetx",
+    "courtside",
 )
 
 

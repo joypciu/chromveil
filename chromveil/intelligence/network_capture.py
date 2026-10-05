@@ -5,7 +5,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-from .api_filter import is_api_candidate, is_noise_url, score_api_relevance
+from .api_filter import is_noise_url, score_api_relevance, should_read_response_body
 
 
 @dataclass
@@ -54,7 +54,7 @@ class NetworkCapture:
     max_body_bytes: int = 512_000
     max_entries: int = 250
     max_ws_frames: int = 120
-    capture_websockets: bool = True
+    capture_websockets: bool = False
     _entries: list[CapturedApi] = field(default_factory=list)
     _ws_entries: list[CapturedWebSocket] = field(default_factory=list)
     _seen: set[str] = field(default_factory=set)
@@ -136,18 +136,29 @@ class NetworkCapture:
         except Exception:
             return
 
+    def _dedupe_key(self, request) -> str:
+        url = request.url
+        try:
+            post = request.post_data or ""
+        except Exception:
+            post = ""
+        if post:
+            return f"{request.method}:{url}:{len(post)}:{hash(post)}"
+        return url
+
     def _on_response(self, response) -> None:
         if len(self._entries) >= self.max_entries:
             return
         try:
             request = response.request
             url = response.url
-            if url in self._seen:
+            key = self._dedupe_key(request)
+            if key in self._seen:
                 return
             resource_type = request.resource_type
             headers = response.headers
             content_type = headers.get("content-type", "")
-            if not is_api_candidate(url, resource_type, content_type):
+            if not should_read_response_body(url, resource_type, content_type):
                 return
             body = self._read_body(response, content_type)
             if body is None:
@@ -163,26 +174,28 @@ class NetworkCapture:
                 size_bytes=size,
                 relevance=score_api_relevance(url, body),
             )
-            self._seen.add(url)
+            self._seen.add(key)
             self._entries.append(rec)
         except Exception:
             return
 
     def _read_body(self, response, content_type: str) -> Any:
         try:
-            if "json" in content_type.lower() or content_type == "":
-                raw = response.body()
-                if len(raw) > self.max_body_bytes:
-                    return {"_truncated": True, "preview": raw[:2000].decode("utf-8", errors="replace")}
-                return response.json()
-        except Exception:
-            pass
-        try:
-            text = response.text()
-            if len(text) > self.max_body_bytes:
-                return text[: self.max_body_bytes] + "…"
-            if text.strip().startswith(("{", "[")):
-                return json.loads(text)
-            return text[:8000] if len(text) > 8000 else text
+            raw = response.body()
         except Exception:
             return None
+        if len(raw) > self.max_body_bytes:
+            return {
+                "_truncated": True,
+                "preview": raw[:2000].decode("utf-8", errors="replace"),
+            }
+        text = raw.decode("utf-8", errors="replace")
+        ct = (content_type or "").lower()
+        if "json" in ct or text.lstrip().startswith(("{", "[")):
+            try:
+                return json.loads(text)
+            except Exception:
+                pass
+        if len(text) > 8000:
+            return text[:8000] + "…"
+        return text if text else None

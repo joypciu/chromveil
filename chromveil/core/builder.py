@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from ..profile import ChromiumProfile, LEAN_GPU_ARGS, _dedupe_args
 from ..stealth import (
+    HEADLESS_STEALTH_ARGS,
     PLAYWRIGHT_IGNORE_DEFAULT_ARGS,
     PURE_STEALTH_FULL_ARGS,
     PURE_STEALTH_LEAN_ARGS,
@@ -38,6 +39,7 @@ def build_launch_plan(profile: ChromiumProfile, ctx: LaunchContext | None = None
     argv.append(f"--window-size={w},{h}")
     if profile.headless:
         argv.append("--headless=new")
+        argv.extend(HEADLESS_STEALTH_ARGS)
     # user-data-dir is applied by Playwright via launch_persistent_context; subprocess uses argv.
     if profile.user_data_dir and not ctx.for_playwright:
         argv.append(f"--user-data-dir={profile.user_data_dir}")

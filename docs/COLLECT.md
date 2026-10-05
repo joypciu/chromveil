@@ -24,7 +24,13 @@ MCP tool: `collect_apis(url, want="", ask="")`.
 | `--want` | Comma keywords — match API URLs or JSON keys/values |
 | `--url-pattern` | Regex on captured API URLs |
 | `--settle-ms` | Wait after load for SPA traffic (default 6000) |
+| `--all` | Heavy mode: WS capture, scroll settle, larger export |
+| `--ws` / `--no-ws` | Override WebSocket capture (off by default in smart mode) |
+| `-o` | Writes **compact** JSON by default (`extracted` + `apis_index`); use `--full` for raw bodies |
+| `CHROMVEIL_LIGHT=1` | Faster settle (3.5s), no SwiftShader on headed Windows, lighter speed flags |
 | `--headed` | Headed browser (recommended) |
+
+Output includes **`extracted`**: normalized selections (event, market, name, odds) decoded from bet365-style pipe APIs (`pullpodapi`, `offersapi`) and generic JSON on other books.
 
 ## Python
 

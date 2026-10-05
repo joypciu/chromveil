@@ -33,7 +33,7 @@ def apply_rotating_identity(profile: ChromiumProfile) -> None:
 
     Set ``CHROMVEIL_FIXED_PERSONA=1`` or ``CHROMVEIL_ROTATE_SEED=0`` with ``CHROMVEIL_PERSONA`` to pin seed.
     """
-    if profile.persist_persona or not rotate_identity_enabled():
+    if profile.persist_persona or not rotate_identity_enabled() or not profile.rotate_identity:
         return
 
     profile.window_size = secrets.choice(COMMON_VIEWPORTS)

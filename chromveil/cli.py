@@ -105,11 +105,33 @@ def main(argv: list[str] | None = None) -> int:
     )
     co.add_argument("--no-display", action="store_true", help="JSON only, skip markdown display block")
     co.add_argument("--url-pattern", default=None, help="Regex filter on API URLs")
-    co.add_argument("--settle-ms", type=int, default=6000, help="Extra wait after load for SPA APIs")
+    co.add_argument(
+        "--all",
+        action="store_true",
+        help="Heavy mode: more APIs/WS bodies, scroll settle, longer export caps",
+    )
+    co.add_argument(
+        "--no-all",
+        action="store_true",
+        help="Only top-N APIs/WS even without --want",
+    )
+    co.add_argument("--settle-ms", type=int, default=None, help="Wait after data APIs (default: 3500 light / 6000)")
+    co.add_argument("--ws", action="store_true", help="Capture WebSocket frames")
+    co.add_argument("--no-ws", action="store_true", help="Disable WebSocket capture")
     co.add_argument("--driver", default="auto")
     co.add_argument("--headed", action="store_true")
     co.add_argument("--attempts", type=int, default=2)
     co.add_argument("-o", "--out", help="Write JSON report")
+    co.add_argument(
+        "--compact",
+        action="store_true",
+        help="With -o: omit raw API/WS bodies (default when -o is set)",
+    )
+    co.add_argument(
+        "--full",
+        action="store_true",
+        help="With -o: write full API/WS bodies (disables default compact)",
+    )
     co.add_argument("-f", "--profile")
 
     cn = sub.add_parser(
@@ -303,6 +325,16 @@ def main(argv: list[str] | None = None) -> int:
         prof = _profile_from_args()
         if args.headed:
             prof.headless = False
+        all_data = None
+        if args.all:
+            all_data = True
+        elif args.no_all:
+            all_data = False
+        ws_cap = None
+        if args.ws:
+            ws_cap = True
+        elif args.no_ws:
+            ws_cap = False
         result = collect_from_url(
             args.url,
             prof,
@@ -312,11 +344,19 @@ def main(argv: list[str] | None = None) -> int:
             url_pattern=args.url_pattern,
             settle_ms=args.settle_ms,
             max_attempts=args.attempts,
+            all_data=all_data,
+            capture_websockets=ws_cap,
         )
         if args.out:
             from pathlib import Path
 
-            Path(args.out).write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+            from .intelligence.structured_extract import compact_capture_payload
+
+            out_data = result.to_dict()
+            use_compact = args.compact or not args.full
+            if use_compact:
+                out_data = compact_capture_payload(out_data)
+            Path(args.out).write_text(json.dumps(out_data, indent=2), encoding="utf-8")
         if not args.no_display and result.display:
             print(result.display)
             print("\n--- JSON metadata: use -o file.json or --no-display for machine output ---\n")

@@ -41,3 +41,9 @@ SPEED_CHROMIUM_ARGS: tuple[str, ...] = (
     "--disable-backgrounding-occluded-windows",
     "--disable-hang-monitor",
 )
+
+# Headless: align window size with viewport probes; avoid looking like a tiny automation window.
+HEADLESS_STEALTH_ARGS: tuple[str, ...] = (
+    "--hide-scrollbars",
+    "--mute-audio",
+)

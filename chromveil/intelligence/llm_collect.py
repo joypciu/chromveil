@@ -86,9 +86,23 @@ def summarize_for_user(ask: str, capture: dict[str, Any]) -> str:
     apis = capture.get("apis") or []
     preview = json.dumps(apis[:5], default=str)[:6000]
     if __import__("os").environ.get("CHROMVEIL_COLLECT_LLM", "1") == "0":
-        return f"Captured {capture.get('count', 0)} API(s). Top URLs: " + ", ".join(
-            (a.get("url") or "")[:60] for a in apis[:5]
+        pd = capture.get("page_data") or {}
+        ex = capture.get("extracted") or {}
+        bits = [
+            f"Captured {capture.get('count', 0)} API(s), {capture.get('websocket_total', 0)} WebSocket frame(s).",
+        ]
+        if ex.get("selection_count"):
+            bits.append(
+                f"Structured: {ex['selection_count']} selections across {ex.get('event_count', 0)} events."
+            )
+        if pd.get("events_on_screen"):
+            bits.append("Events: " + "; ".join(pd["events_on_screen"][:6]))
+        if pd.get("odds_on_screen"):
+            bits.append("Odds sample: " + ", ".join(pd["odds_on_screen"][:12]))
+        bits.append(
+            "Top APIs: " + ", ".join((a.get("url") or "").split("?")[0][-55:] for a in apis[:4])
         )
+        return " ".join(bits)
     try:
         base, model, key = _llm_endpoint()
         messages = [

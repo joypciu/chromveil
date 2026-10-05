@@ -1,7 +1,6 @@
 """Resilient navigation — detect soft blocks and retry with a fresh identity."""
 from __future__ import annotations
 
-import re
 import time
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -10,12 +9,7 @@ from ..core.runtime import BrowserRuntime
 from ..drivers.veil_session import VeilSession
 from ..profile import ChromiumProfile
 
-BLOCK_RE = re.compile(
-    r"access denied|not available in your (country|region)|geo.?restrict|blocked|"
-    r"captcha|verify you are human|cloudflare|attention required|forbidden|"
-    r"unusual traffic|automated access|bot detected|request blocked",
-    re.I,
-)
+from .session_stability import apply_sticky_host_profile, detect_block_signals, wait_for_challenge_clear
 
 
 @dataclass
@@ -29,22 +23,33 @@ class NavigationResult:
     page: Any = None
 
 
-def detect_block_signals(page) -> list[str]:
-    signals: list[str] = []
+_SPORTSBOOK_DATA_HINTS = (
+    "pullpodapi",
+    "allsportsmenu",
+    "sports-configuration",
+    "matchmarkets",
+    "sportsbook",
+    "/api/",
+    "linetracker",
+    "wagertalk",
+    "vsin.com",
+    "prophetx",
+    "odds",
+)
+
+
+def wait_for_sportsbook_data(page, timeout_ms: int = 45_000) -> bool:
+    """Wait until a typical sportsbook data XHR/fetch fires (bet365, betonline, etc.)."""
+
+    def _match(response) -> bool:
+        u = (response.url or "").lower()
+        return any(h in u for h in _SPORTSBOOK_DATA_HINTS)
+
     try:
-        title = page.title() or ""
-        if BLOCK_RE.search(title):
-            signals.append("title")
+        page.wait_for_response(_match, timeout=timeout_ms)
+        return True
     except Exception:
-        pass
-    try:
-        text = page.evaluate("() => (document.body && document.body.innerText || '').slice(0, 2000)")
-        if text and BLOCK_RE.search(text):
-            signals.append("body_text")
-    except Exception:
-        pass
-    # Do not treat thin body alone as a block — SPAs (bet365, etc.) often render outside innerText.
-    return signals
+        return False
 
 
 def goto_resilient(
@@ -60,6 +65,7 @@ def goto_resilient(
     Open browser and navigate; on block hints, discard session and retry with fresh rotated identity.
     """
     base = profile or ChromiumProfile.from_env()
+    apply_sticky_host_profile(base, url)
     attempts = 0
     last_signals: list[str] = []
     session: VeilSession | None = None
@@ -67,7 +73,7 @@ def goto_resilient(
 
     while attempts < max_attempts:
         attempts += 1
-        prof = base.clone_fresh_session()
+        prof = base if base.sticky_session else base.clone_fresh_session()
         if session:
             session.close()
         session = BrowserRuntime(prof).open(driver=driver)
@@ -85,17 +91,25 @@ def goto_resilient(
             time.sleep(0.8)
             continue
 
+        wait_for_challenge_clear(page, timeout_ms=35_000)
         last_signals = detect_block_signals(page)
-        if not last_signals:
-            return NavigationResult(
-                ok=True,
-                url=page.url,
-                title=page.title(),
-                attempts=attempts,
-                block_signals=[],
-                session=session,
-                page=page,
-            )
+        if last_signals == ["challenge"]:
+            wait_for_challenge_clear(page, timeout_ms=20_000)
+            last_signals = detect_block_signals(page)
+        if not last_signals or last_signals == ["soft_error"]:
+            if last_signals == ["soft_error"]:
+                time.sleep(2.0)
+                last_signals = detect_block_signals(page)
+            if not last_signals:
+                return NavigationResult(
+                    ok=True,
+                    url=page.url,
+                    title=page.title(),
+                    attempts=attempts,
+                    block_signals=[],
+                    session=session,
+                    page=page,
+                )
         if on_retry:
             on_retry(attempts, last_signals)
 

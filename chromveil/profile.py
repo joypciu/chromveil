@@ -21,6 +21,27 @@ LEAN_GPU_ARGS: tuple[str, ...] = (
 DriverName = str  # playwright | patchright | cdp | subprocess | auto
 
 
+def _default_lean_gpu() -> bool:
+    """SwiftShader is for headless/WSL; skip on headed Windows for speed."""
+    v = os.environ.get("CHROMVEIL_LEAN_GPU")
+    if v is not None:
+        return v.strip().lower() in ("1", "true", "yes", "on")
+    if os.name == "nt" and os.environ.get("CHROMVEIL_HEADLESS", "").lower() not in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return False
+    return True
+
+
+def _default_speed_tuning() -> bool:
+    v = os.environ.get("CHROMVEIL_SPEED")
+    if v is not None:
+        return v.strip().lower() in ("1", "true", "yes", "on")
+    return os.environ.get("CHROMVEIL_LIGHT", "1").strip().lower() not in ("1", "true", "yes", "on")
+
+
 def default_driver_name() -> str:
     """Patchright when installed (bet365-style sites); else playwright."""
     try:
@@ -55,6 +76,8 @@ class ChromiumProfile:
     pure_stealth: bool = True
     speed_tuning: bool = True
     persist_persona: bool = False
+    rotate_identity: bool = True
+    sticky_session: bool = True
     extra_args: list[str] = field(default_factory=list)
     env: dict[str, str] = field(default_factory=dict)
     driver: DriverName = "patchright"
@@ -79,11 +102,15 @@ class ChromiumProfile:
             user_data_dir=os.environ.get("CHROMVEIL_USER_DATA_DIR"),
             cdp_host=os.environ.get("CHROMVEIL_CDP_HOST", "127.0.0.1"),
             cdp_port=int(port) if port else None,
-            lean_gpu_args=_bool("CHROMVEIL_LEAN_GPU", True),
+            lean_gpu_args=_default_lean_gpu(),
             stealth_tuning=_bool("CHROMVEIL_STEALTH", True),
             pure_stealth=_bool("CHROMVEIL_PURE_STEALTH", True),
-            speed_tuning=_bool("CHROMVEIL_SPEED", True),
+            speed_tuning=_default_speed_tuning(),
             persist_persona=_bool("CHROMVEIL_PERSIST_PROFILE", False),
+            rotate_identity=os.environ.get("CHROMVEIL_ROTATE_IDENTITY", "1").strip().lower()
+            not in ("0", "false", "no", "off"),
+            sticky_session=os.environ.get("CHROMVEIL_STICKY_SESSION", "1").strip().lower()
+            in ("1", "true", "yes", "on"),
             driver=os.environ.get("CHROMVEIL_DRIVER") or default_driver_name(),
         )
 
@@ -122,6 +149,8 @@ class ChromiumProfile:
             pure_stealth=self.pure_stealth,
             speed_tuning=self.speed_tuning,
             persist_persona=False,
+            rotate_identity=self.rotate_identity,
+            sticky_session=self.sticky_session,
             extra_args=list(self.extra_args),
             env=dict(self.env),
             driver=self.driver,
