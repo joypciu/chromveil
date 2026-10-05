@@ -7,7 +7,12 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
-from .stealth import PLAYWRIGHT_IGNORE_DEFAULT_ARGS, SPEED_CHROMIUM_ARGS, STEALTH_CHROMIUM_ARGS
+from .stealth import (
+    PLAYWRIGHT_IGNORE_DEFAULT_ARGS,
+    PURE_STEALTH_CHROMIUM_ARGS,
+    SPEED_CHROMIUM_ARGS,
+    STEALTH_CHROMIUM_ARGS,
+)
 
 # GPU-less defaults aligned with ChromiumFish launcher (safe on Linux/WSL headless).
 LEAN_GPU_ARGS: tuple[str, ...] = (
@@ -43,7 +48,9 @@ class ChromiumProfile:
     cdp_port: int | None = None
     lean_gpu_args: bool = True
     stealth_tuning: bool = True
+    pure_stealth: bool = True
     speed_tuning: bool = True
+    persist_persona: bool = True
     extra_args: list[str] = field(default_factory=list)
     env: dict[str, str] = field(default_factory=dict)
     driver: DriverName = "auto"
@@ -70,7 +77,9 @@ class ChromiumProfile:
             cdp_port=int(port) if port else None,
             lean_gpu_args=_bool("CHROMVEIL_LEAN_GPU", True),
             stealth_tuning=_bool("CHROMVEIL_STEALTH", True),
+            pure_stealth=_bool("CHROMVEIL_PURE_STEALTH", True),
             speed_tuning=_bool("CHROMVEIL_SPEED", True),
+            persist_persona=_bool("CHROMVEIL_PERSIST_PROFILE", True),
             driver=os.environ.get("CHROMVEIL_DRIVER", "auto"),
         )
 
@@ -92,7 +101,19 @@ class ChromiumProfile:
         apply_dev_defaults(self)
         return resolve_executable(download=download)
 
+    def materialize(self) -> ChromiumProfile:
+        """Apply persona profile dir and defaults before launch."""
+        import hashlib
+
+        if self.persist_persona and not self.user_data_dir:
+            slug = hashlib.sha256(self.persona_seed.encode("utf-8")).hexdigest()[:16]
+            root = Path.home() / ".chromveil" / "profiles" / slug
+            root.mkdir(parents=True, exist_ok=True)
+            self.user_data_dir = str(root)
+        return self
+
     def chromium_argv(self, *, include_cdp: bool = True) -> list[str]:
+        self.materialize()
         argv: list[str] = []
         if self.lean_gpu_args:
             argv.extend(LEAN_GPU_ARGS)
@@ -108,6 +129,8 @@ class ChromiumProfile:
             argv.append("--remote-debugging-address=0.0.0.0")
         if self.stealth_tuning:
             argv.extend(STEALTH_CHROMIUM_ARGS)
+        if self.pure_stealth:
+            argv.extend(PURE_STEALTH_CHROMIUM_ARGS)
         if self.speed_tuning:
             argv.extend(SPEED_CHROMIUM_ARGS)
         argv.extend(self.extra_args)
@@ -166,9 +189,8 @@ def _dedupe_args(argv: list[str]) -> list[str]:
 
 
 def is_patched_build(executable: str | None) -> bool:
+    from .resolve import browser_tier
+
     if os.environ.get("CHROMVEIL_EXPECT_PATCHED", "").lower() in ("1", "true", "yes"):
         return True
-    if not executable:
-        return False
-    low = executable.lower().replace("\\", "/")
-    return "chromiumfish" in low or "chromveil" in low or "/out/release/chrome" in low
+    return browser_tier(executable) in ("patched", "chromiumfish", "custom")

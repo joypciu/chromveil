@@ -5,19 +5,32 @@ from __future__ import annotations
 PLAYWRIGHT_IGNORE_DEFAULT_ARGS: tuple[str, ...] = (
     "--enable-automation",
     "--disable-extensions",
+    "--disable-component-extensions-with-background-pages",
 )
 
-# Extra Chromium flags (stock Chrome + patched builds). Patched ChromiumFish already
-# fixes navigator.webdriver in C++; these still help when attaching via CDP.
+# Baseline stealth flags (stock Chrome + patched builds).
 STEALTH_CHROMIUM_ARGS: tuple[str, ...] = (
     "--disable-blink-features=AutomationControlled",
     "--exclude-switches=enable-automation",
     "--disable-infobars",
 )
 
-# Safe throughput tweaks for automation (disable throttling of background tabs).
+# Extra hygiene for "pure" mode — fewer background services & first-run UI.
+PURE_STEALTH_CHROMIUM_ARGS: tuple[str, ...] = (
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-default-apps",
+    "--disable-sync",
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-features=TranslateUI",
+    "--metrics-recording-only",
+)
+
+# Throughput: keep renderers hot during automation.
 SPEED_CHROMIUM_ARGS: tuple[str, ...] = (
     "--disable-background-timer-throttling",
     "--disable-renderer-backgrounding",
     "--disable-backgrounding-occluded-windows",
+    "--disable-hang-monitor",
 )

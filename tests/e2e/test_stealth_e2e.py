@@ -25,6 +25,15 @@ def test_stealth_probe_local(browser_session):
 
 
 def test_evaluate_checks_unit():
-    probes = {"cdcKeys": [], "webdriver": False, "languages": ["en"], "outerWidth": 1920, "innerWidth": 1280}
-    checks = evaluate_checks(probes, patched=True)
+    probes = {
+        "cdcKeys": [],
+        "webdriver": False,
+        "webdriverAttr": None,
+        "languages": ["en"],
+        "outerWidth": 1920,
+        "innerWidth": 1280,
+        "userAgent": "Mozilla/5.0 Chrome/120.0",
+        "pluginsLength": 2,
+    }
+    checks = evaluate_checks(probes, strict=True)
     assert score_checks(checks) == 1.0

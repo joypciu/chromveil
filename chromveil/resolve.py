@@ -18,6 +18,10 @@ def _scan_cache(root: Path) -> str | None:
 
 
 def resolve_executable(download: bool = False) -> str | None:
+    from .binfetch import ensure_binary
+
+    if download:
+        return ensure_binary(download=True)
     for key in ("CHROMVEIL_EXECUTABLE", "CHROMVEIL_CHROME", "CHROMIUMFISH_CHROME"):
         val = os.environ.get(key)
         if val and Path(val).exists():

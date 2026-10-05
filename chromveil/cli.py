@@ -56,6 +56,8 @@ def main(argv: list[str] | None = None) -> int:
     mc = sub.add_parser("mcp", help="MCP server (WSL + ChromiumFish recommended)")
     mc.add_argument("--persona", default=None)
 
+    sub.add_parser("fetch", help="Download ChromiumFish binary if missing").set_defaults(cmd="fetch")
+
     e2 = sub.add_parser("e2e", help="Stealth + speed end-to-end report (JSON)")
     e2.add_argument("--driver", default="auto")
     e2.add_argument("-o", "--out")
@@ -147,6 +149,13 @@ def main(argv: list[str] | None = None) -> int:
             payload["hint"] = wsl_mcp_hint()
         print(json.dumps(payload, indent=2))
         return 0
+
+    if args.cmd == "fetch":
+        from .binfetch import ensure_binary
+
+        exe = ensure_binary(download=True)
+        print(json.dumps({"executable": exe, "ok": bool(exe)}, indent=2))
+        return 0 if exe else 1
 
     if args.cmd == "e2e":
         from .e2e.runner import run_e2e

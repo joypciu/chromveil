@@ -8,6 +8,7 @@ ChromVeil adds **latency-oriented** hunks without forking the whole monorepo:
 |-------|--------|
 | `chromveil-agent-fast.patch` | Smaller page context, shorter action history, faster humanized click glide |
 | `chromveil-serialize-fast.patch` | Shorter APC labels → faster native agent perception |
+| `chromveil-agent-step-wait.patch` | Faster agent re-observe delay (400ms → 220ms) |
 
 ## Apply order
 

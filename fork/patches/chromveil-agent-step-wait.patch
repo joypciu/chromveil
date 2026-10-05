@@ -1,0 +1,12 @@
+diff --git a/chrome/browser/ai_agent/agent_controller.cc b/chrome/browser/ai_agent/agent_controller.cc
+--- a/chrome/browser/ai_agent/agent_controller.cc
++++ b/chrome/browser/ai_agent/agent_controller.cc
+@@ -1228,7 +1228,7 @@ void AgentController::StepDone(const std::string& observation_note) {
+   base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
+       FROM_HERE,
+       base::BindOnce(&AgentController::Observe, weak_factory_.GetWeakPtr()),
+-      base::Milliseconds(400));
++      base::Milliseconds(220));  // ChromVeil: faster re-observe loop
+ }
+ 
+ void AgentController::Finish(bool success, const std::string& final_text) {

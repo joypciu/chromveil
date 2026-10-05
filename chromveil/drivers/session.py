@@ -128,6 +128,7 @@ def open_browser(profile: ChromiumProfile, driver: str | None = None) -> VeilSes
     - cdp / subprocess: only spawn process, return cdp_url (no Playwright handle)
     - auto: patchright if installed else playwright
     """
+    profile.materialize()
     drv = _pick_driver(driver or profile.driver)
     if drv in ("cdp", "subprocess"):
         return spawn_cdp(profile)
