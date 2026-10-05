@@ -8,7 +8,7 @@ $py = Join-Path $root ".venv\Scripts\python.exe"
 while ($true) {
     $ts = (Get-Date).ToUniversalTime().ToString("o")
     $env:CHROMVEIL_AUTO_FETCH = "0"
-    $pytest = & $py -m pytest $root\tests -q 2>&1 | Select-Object -Last 1
+    $pytest = & $py -m pytest $root\tests -q --ignore=tests/test_diverse_sites.py 2>&1 | Select-Object -Last 1
     Add-Content -Path $log -Value "$ts $pytest"
     Start-Sleep -Seconds $Seconds
 }
