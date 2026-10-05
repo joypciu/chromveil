@@ -1,5 +1,7 @@
 # ChromVeil
 
+**Repository:** https://github.com/joypciu/chromveil
+
 **Your own Chromium** — fully customizable (persona, binary, flags) and **driver-agnostic**:
 Playwright, Patchright, Puppeteer, Selenium, or raw CDP all attach to the same browser.
 
@@ -13,7 +15,7 @@ Stack:
 | Fork tuning | `fork/patches/chromveil-agent-fast.patch` | Leaner prompts, snappier clicks (your patch layer) |
 | Harness | ChromVeil | WSL bootstrap, MCP tools, `navigate(domcontentloaded)`, `snapshot_fast` |
 
-**WSL is required on Windows** for real stealth binaries today (ChromiumFish prebuilds are Linux/macOS).
+**Custom fork not built yet?** Use [dev mode](docs/DEV_WITHOUT_CUSTOM_CHROME.md): Playwright/Patchright + launch tuning, or `scripts/fetch-chromiumfish.ps1` for the Windows prebuild. WSL build remains the path to *your* patched chrome + fork patches.
 
 ### E2E stealth + speed tests
 
