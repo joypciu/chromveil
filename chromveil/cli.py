@@ -92,6 +92,12 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Comma keywords: odds,events,markets — filters APIs and JSON fields",
     )
+    co.add_argument(
+        "--ask",
+        default=None,
+        help="Natural language question (LLM extracts keywords + summary)",
+    )
+    co.add_argument("--no-display", action="store_true", help="JSON only, skip markdown display block")
     co.add_argument("--url-pattern", default=None, help="Regex filter on API URLs")
     co.add_argument("--settle-ms", type=int, default=6000, help="Extra wait after load for SPA APIs")
     co.add_argument("--driver", default="auto")
@@ -280,17 +286,20 @@ def main(argv: list[str] | None = None) -> int:
             prof,
             driver=args.driver,
             want=args.want,
+            ask=args.ask,
             url_pattern=args.url_pattern,
             settle_ms=args.settle_ms,
             max_attempts=args.attempts,
         )
-        text = json.dumps(result.to_dict(), indent=2)
         if args.out:
             from pathlib import Path
 
-            Path(args.out).write_text(text, encoding="utf-8")
+            Path(args.out).write_text(json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+        if not args.no_display and result.display:
+            print(result.display)
+            print("\n--- JSON metadata: use -o file.json or --no-display for machine output ---\n")
         else:
-            print(text)
+            print(json.dumps(result.to_dict(), indent=2))
         return 0 if result.ok else 1
 
     if args.cmd == "visit":

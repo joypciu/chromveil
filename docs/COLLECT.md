@@ -8,6 +8,15 @@ Open any URL with ChromVeil stealth, record **XHR/fetch** responses, drop analyt
 chromveil collect "https://www.betonline.ag/sportsbook" --headed --want odds,events,markets -o report.json
 
 chromveil collect "https://www.bet365.com/#/HO/" --want sports,fixture --url-pattern "bet365|sportsbook"
+
+chromveil collect "https://www.betonline.ag/sportsbook" --headed `
+  --ask "What betting markets and odds APIs loaded?"
+```
+
+Natural language `--ask` uses your LLM (`CHROMVEIL_LLM_URL` / Ollama) to pick keywords and write a short **Answer** section. Set `CHROMVEIL_COLLECT_LLM=0` for heuristic-only mode.
+
+WebSocket frames are captured when the site uses them (filtered like HTTP noise).
+MCP tool: `collect_apis(url, want="", ask="")`.
 ```
 
 | Flag | Purpose |

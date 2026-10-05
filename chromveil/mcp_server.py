@@ -248,6 +248,27 @@ def build_server():
         return result.final_text or ("(failed)" if not result.success else "(done)")
 
     @mcp.tool()
+    def collect_apis(
+        url: str,
+        want: str = "",
+        ask: str = "",
+        settle_ms: int = 6000,
+    ) -> str:
+        """Open URL with ChromVeil (Playwright path), capture XHR/fetch/WebSocket APIs, filter noise, return display + JSON."""
+        from .intelligence.collect import collect_from_url
+
+        result = collect_from_url(
+            url,
+            want=want or None,
+            ask=ask or None,
+            settle_ms=settle_ms,
+            max_attempts=2,
+        )
+        if result.display:
+            return result.display + "\n\n---\n" + json.dumps(result.to_dict(), indent=2)[:12000]
+        return json.dumps(result.to_dict(), indent=2)
+
+    @mcp.tool()
     def browser_status() -> str:
         """Persona, chrome path, native availability."""
         return json.dumps(

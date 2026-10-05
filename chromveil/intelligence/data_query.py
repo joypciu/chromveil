@@ -5,7 +5,7 @@ import json
 import re
 from typing import Any
 
-from .network_capture import CapturedApi
+from .network_capture import CapturedApi, CapturedWebSocket
 
 
 def _walk_json(obj: Any, tokens: list[str], path: str = "") -> list[dict[str, Any]]:
@@ -34,6 +34,26 @@ def filter_by_url_pattern(entries: list[CapturedApi], pattern: str | None) -> li
     return [e for e in entries if rx.search(e.url)]
 
 
+def select_websockets(
+    frames: list[CapturedWebSocket],
+    *,
+    want: str | None = None,
+    top_n: int = 30,
+) -> list[dict[str, Any]]:
+    tokens = [t.strip().lower() for t in (want or "").split(",") if t.strip()]
+    out: list[dict[str, Any]] = []
+    for f in frames:
+        blob = json.dumps(f.payload, default=str).lower()
+        if tokens and not any(t in f.url.lower() or t in blob for t in tokens):
+            continue
+        out.append(f.to_dict())
+        if len(out) >= top_n:
+            break
+    if not tokens:
+        return [f.to_dict() for f in frames[:top_n]]
+    return out
+
+
 def select_for_user(
     entries: list[CapturedApi],
     *,
@@ -42,10 +62,6 @@ def select_for_user(
     min_relevance: float = 0.0,
     top_n: int = 40,
 ) -> dict[str, Any]:
-    """
-    ``want``: comma-separated keywords (e.g. ``odds,events,markets``).
-    Returns ranked APIs plus optional JSON path hits inside bodies.
-    """
     pool = filter_by_url_pattern(entries, url_pattern)
     pool = [e for e in pool if e.relevance >= min_relevance]
     pool.sort(key=lambda e: e.relevance, reverse=True)

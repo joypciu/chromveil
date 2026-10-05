@@ -1,11 +1,11 @@
-"""Capture XHR/fetch JSON while the page loads."""
+"""Capture XHR/fetch JSON and WebSocket frames while the page loads."""
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
 from typing import Any
 
-from .api_filter import is_api_candidate, score_api_relevance
+from .api_filter import is_api_candidate, is_noise_url, score_api_relevance
 
 
 @dataclass
@@ -33,18 +33,41 @@ class CapturedApi:
 
 
 @dataclass
+class CapturedWebSocket:
+    url: str
+    direction: str
+    payload: Any
+    size_bytes: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "url": self.url,
+            "direction": self.direction,
+            "payload": self.payload,
+            "size_bytes": self.size_bytes,
+        }
+
+
+@dataclass
 class NetworkCapture:
     page: Any
     max_body_bytes: int = 512_000
     max_entries: int = 250
+    max_ws_frames: int = 120
+    capture_websockets: bool = True
     _entries: list[CapturedApi] = field(default_factory=list)
+    _ws_entries: list[CapturedWebSocket] = field(default_factory=list)
     _seen: set[str] = field(default_factory=set)
     _attached: bool = False
+    _ws_handler: Any = None
 
     def attach(self) -> None:
         if self._attached:
             return
         self.page.on("response", self._on_response)
+        if self.capture_websockets:
+            self._ws_handler = self._on_websocket
+            self.page.on("websocket", self._ws_handler)
         self._attached = True
 
     def detach(self) -> None:
@@ -52,12 +75,66 @@ class NetworkCapture:
             return
         try:
             self.page.remove_listener("response", self._on_response)
+            if self._ws_handler:
+                self.page.remove_listener("websocket", self._ws_handler)
         except Exception:
             pass
         self._attached = False
 
     def entries(self) -> list[CapturedApi]:
         return list(self._entries)
+
+    def websocket_entries(self) -> list[CapturedWebSocket]:
+        return list(self._ws_entries)
+
+    def _on_websocket(self, ws) -> None:
+        url = ws.url
+        if is_noise_url(url):
+            return
+
+        def frame_received(payload) -> None:
+            self._push_ws(url, "received", payload)
+
+        def frame_sent(payload) -> None:
+            self._push_ws(url, "sent", payload)
+
+        try:
+            ws.on("framereceived", frame_received)
+            ws.on("framesent", frame_sent)
+        except Exception:
+            pass
+
+    def _push_ws(self, url: str, direction: str, payload) -> None:
+        if len(self._ws_entries) >= self.max_ws_frames:
+            return
+        try:
+            if isinstance(payload, bytes):
+                text = payload.decode("utf-8", errors="replace")
+            elif isinstance(payload, str):
+                text = payload
+            elif hasattr(payload, "payload"):
+                raw = payload.payload
+                text = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else str(raw)
+            else:
+                text = str(payload)
+            body: Any = text
+            if text.strip().startswith(("{", "[")):
+                try:
+                    body = json.loads(text)
+                except Exception:
+                    pass
+            if len(text) > self.max_body_bytes:
+                body = text[: self.max_body_bytes] + "…"
+            self._ws_entries.append(
+                CapturedWebSocket(
+                    url=url,
+                    direction=direction,
+                    payload=body,
+                    size_bytes=len(text),
+                )
+            )
+        except Exception:
+            return
 
     def _on_response(self, response) -> None:
         if len(self._entries) >= self.max_entries:

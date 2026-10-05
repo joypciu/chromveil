@@ -1,6 +1,6 @@
 # Local 5s health loop (does not wake Cursor — logs only).
-# Usage: .\scripts\loop-health.ps1 [-Seconds 5]
-param([int]$Seconds = 5)
+# Usage: .\scripts\loop-health.ps1 [-Seconds 2]
+param([int]$Seconds = 2)
 $root = Split-Path $PSScriptRoot -Parent
 $log = Join-Path $env:USERPROFILE ".chromveil\loop-health.log"
 New-Item -ItemType Directory -Force -Path (Split-Path $log) | Out-Null
